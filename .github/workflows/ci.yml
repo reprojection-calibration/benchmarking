@@ -16,7 +16,7 @@ jobs:
   test-data:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download TUM test data
         uses: ./.github/actions/docker-build
         with:
@@ -54,3 +54,19 @@ jobs:
         with:
           name: dataset-calib-imu4_512_16
           path: ${{ runner.temp }}/data/dataset-calib-imu4_512_16.bag
+  kalibr-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build the Kalibr image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: kalibr-build
+          context: thirdparty/kalibr
+          file: thirdparty/kalibr/Dockerfile_ros1_20_04
+          load: true
+          tag: kalibr
+          target: test-data-download-stage

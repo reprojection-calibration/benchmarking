@@ -23,7 +23,8 @@ inputs:
   tag:
     required: false
   target:
-    required: true
+    default: latest
+    required: false
 
 runs:
   using: "composite"
