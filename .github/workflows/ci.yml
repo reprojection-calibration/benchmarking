@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+# https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  test-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download TUM test data
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: test-data-download
+          context: .
+          load: true
+          tag: reprojection:test-data-download-stage
+          target: test-data-download-stage
+      - name: Extract rosbags
+        run: |
+          docker create --name test-data-download-container reprojection:test-data-download-stage
+          
+          mkdir --parents "${RUNNER_TEMP}/data"
+          docker cp "test-data-download-container:/data/." \
+            "${RUNNER_TEMP}/data"
+          
+          docker rm test-data-download-container
+      - name: Upload dataset-calib-imu1_512_16
+        uses: actions/upload-artifact@v7
+        with:
+          name: dataset-calib-imu1_512_16
+          path: ${{ runner.temp }}/data/dataset-calib-imu1_512_16.bag
+      - name: Upload dataset-calib-imu2_512_16
+        uses: actions/upload-artifact@v7
+        with:
+          name: dataset-calib-imu2_512_16
+          path: ${{ runner.temp }}/data/dataset-calib-imu2_512_16.bag
+      - name: Upload dataset-calib-imu3_512_16
+        uses: actions/upload-artifact@v7
+        with:
+          name: dataset-calib-imu3_512_16
+          path: ${{ runner.temp }}/data/dataset-calib-imu3_512_16.bag
+      - name: Upload dataset-calib-imu4_512_16
+        uses: actions/upload-artifact@v7
+        with:
+          name: dataset-calib-imu4_512_16
+          path: ${{ runner.temp }}/data/dataset-calib-imu4_512_16.bag
