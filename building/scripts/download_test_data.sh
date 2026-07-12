@@ -8,17 +8,23 @@ apt-get install --no-install-recommends --yes \
     wget
 rm --force --recursive /var/lib/apt/lists/*
 
-# TODO(Jack): But the entire download of all four datasets into one bash script limits the usefulness of caching. Is
-# there  way to structure this that would allow us to better make use of caching? Honestly this script should never
-# change so I guess we should never need that.
-declare -a datasets=("dataset-calib-imu1_512_16.bag" "dataset-calib-imu2_512_16.bag" "dataset-calib-imu3_512_16.bag" "dataset-calib-imu4_512_16.bag")
+# NOTE(Jack): Putting all the datasets here in one script means we might bust a relatively large cache if anything
+# changes - but 4GB of downloads should be ok for anyone with modern internet to have to redownload if need be :)
+readonly base_url="https://vision.in.tum.de/tumvi/calibrated/512_16"
+readonly -a datasets=(
+    "dataset-calib-imu1_512_16.bag"
+    "dataset-calib-imu2_512_16.bag"
+    "dataset-calib-imu3_512_16.bag"
+    "dataset-calib-imu4_512_16.bag"
+)
 
-for dataset in "${datasets[@]}"
-do
-   wget \
-     --directory-prefix="/data" \
-     --progress=bar:force:noscroll \
-     --show-progress \
-     "https://vision.in.tum.de/tumvi/calibrated/512_16/${dataset}"
+readonly data_dir="/data"
+mkdir --parents "${data_dir}"
+
+for dataset in "${datasets[@]}"; do
+    wget \
+      --directory-prefix="${data_dir}" \
+      --progress=bar:force:noscroll \
+      --show-progress \
+      "${base_url}/${dataset}"
 done
-
