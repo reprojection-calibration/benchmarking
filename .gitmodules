@@ -1,0 +1,3 @@
+[submodule "thirdparty/kalibr"]
+	path = thirdparty/kalibr
+	url = https://github.com/ethz-asl/kalibr.git
