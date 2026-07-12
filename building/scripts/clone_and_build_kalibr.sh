@@ -11,8 +11,11 @@ apt-get install --no-install-recommends --yes \
     git
 rm --force --recursive /var/lib/apt/lists/*
 
+# NOTE(Jack): We need to solve the case where we are running this locally on a users system that needs sudo to
+# update/install apt packages, but we do not want the git clone to happen as the super user because that causes
+# ownership problems. If sudo is not used (ex. in the gha pipeline) then we can just clone like normal :)
 if [[ -n "${SUDO_USER:-}" ]]; then
-    sudo -u "${SUDO_USER}" git clone \
+    sudo --user="${SUDO_USER}" git clone \
         "https://github.com/ethz-asl/kalibr.git" "${THIRDPARTY_DIR}/kalibr"
 else
     git clone "https://github.com/ethz-asl/kalibr.git" "${THIRDPARTY_DIR}/kalibr"
