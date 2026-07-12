@@ -30,7 +30,7 @@ jobs:
           docker create --name test-data-download-container reprojection:test-data-download-stage
           
           mkdir --parents "${RUNNER_TEMP}/data"
-          docker cp "test-data-container:/data/." \
+          docker cp "test-data-download-container:/data/." \
             "${RUNNER_TEMP}/data"
           
           docker rm test-data-download-container
