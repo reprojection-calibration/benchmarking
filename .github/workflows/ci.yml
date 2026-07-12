@@ -69,4 +69,3 @@ jobs:
           file: thirdparty/kalibr/Dockerfile_ros1_20_04
           load: true
           tag: kalibr
-          target: test-data-download-stage
