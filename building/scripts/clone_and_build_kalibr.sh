@@ -11,4 +11,9 @@ apt-get install --no-install-recommends --yes \
     git
 rm --force --recursive /var/lib/apt/lists/*
 
-git clone "https://github.com/ethz-asl/kalibr.git" "${THIRDPARTY_DIR}/kalibr"
+if [[ -n "${SUDO_USER:-}" ]]; then
+    sudo -u "${SUDO_USER}" git clone \
+        "https://github.com/ethz-asl/kalibr.git" "${THIRDPARTY_DIR}/kalibr"
+else
+    git clone "https://github.com/ethz-asl/kalibr.git" "${THIRDPARTY_DIR}/kalibr"
+fi
