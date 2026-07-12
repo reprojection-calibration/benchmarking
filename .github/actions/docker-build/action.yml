@@ -23,7 +23,6 @@ inputs:
   tag:
     required: false
   target:
-    default: latest
     required: false
 
 runs:
