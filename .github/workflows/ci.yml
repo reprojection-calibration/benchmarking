@@ -25,35 +25,24 @@ jobs:
           load: true
           tag: reprojection:test-data-download-stage
           target: test-data-download-stage
-      - name: Copy test data into Docker volume
-        run: |
-          set -eoux pipefail
-    
-          docker volume create benchmarking-data
-    
-          docker run --rm \
-            --mount "type=volume,source=benchmarking-data,target=/volume/mount" \
-            --entrypoint bash \
-            reprojection:test-data-download-stage -c 'cp --archive /data/. /volume/mount/'
-
-      - name: Package Docker volume
+      - name: Pack test data into zip file
         run: |
           set -eoux pipefail
     
           mkdir --parents "${RUNNER_TEMP}/artifacts"
-    
-          docker run --rm \
-            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+          
+          docker run \
+            --rm \
             --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
-            ubuntu:24.04 \
-            tar \
-              --create \
-              --gzip \
-              --file=/artifacts/benchmarking-data.tar.gz \
-              --directory=/data \
-              .
-
-      - name: Upload benchmarking data
+            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            reprojection:test-data-download-stage \
+              tar \
+                --create \
+                --directory=/data \
+                --file=/artifacts/benchmarking-data.tar.gz \
+                --gzip \
+                .
+      - name: Upload test data
         uses: actions/upload-artifact@v7
         with:
           name: benchmarking-data
