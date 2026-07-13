@@ -37,7 +37,7 @@ jobs:
             --rm \
             --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
             --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
-            reprojection:test-data-download-stage \
+            benchmarking:test-data-download-stage \
               tar \
                 --create \
                 --directory=/data \
