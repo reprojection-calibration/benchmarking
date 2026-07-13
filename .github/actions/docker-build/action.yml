@@ -15,7 +15,7 @@ inputs:
   external_cache_scope_1:
     required: false
   file:
-    default: building/Dockerfile
+    default: Dockerfile
     required: false
   load:
     default: false

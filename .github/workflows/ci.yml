@@ -11,8 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-
 jobs:
+  # TODO(Jack): We should think about using gha "cache" as possible way to speed up the data handling here. It is just
+  # not needed to uploaded the artifact everytime and download it again. If we can just upload it once and store it in
+  # the cache that would make a lot of sense.
   test-data:
     runs-on: ubuntu-latest
     steps:
@@ -23,38 +25,37 @@ jobs:
           cache_scope: test-data-download
           context: .
           load: true
-          tag: reprojection:test-data-download-stage
+          tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
-      - name: Extract rosbags
+      - name: Pack the test data into a zip file
         run: |
-          docker create --name test-data-download-container reprojection:test-data-download-stage
+          set -eou pipefail
+    
+          mkdir --parents "${RUNNER_TEMP}/artifacts"
           
-          mkdir --parents "${RUNNER_TEMP}/data"
-          docker cp "test-data-download-container:/data/." \
-            "${RUNNER_TEMP}/data"
-          
-          docker rm test-data-download-container
-      - name: Upload dataset-calib-imu1_512_16
+          # NOTE(Jack): We actually do not apply any compression here because using --gzip was taking a long time. Is 
+          # this ok? I think the upload-artifact action should itself do compression. Does it really matter?
+          docker run \
+            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
+            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            --rm \
+            benchmarking:test-data-download-stage \
+              tar \
+                --create \
+                --directory=/data \
+                --file=/artifacts/benchmarking-data.tar \
+                --verbose \
+                .
+
+      - name: Upload zipped test data
         uses: actions/upload-artifact@v7
         with:
-          name: dataset-calib-imu1_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu1_512_16.bag
-      - name: Upload dataset-calib-imu2_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu2_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu2_512_16.bag
-      - name: Upload dataset-calib-imu3_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu3_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu3_512_16.bag
-      - name: Upload dataset-calib-imu4_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu4_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu4_512_16.bag
-  kalibr-build:
+          name: benchmarking-data-zip
+          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar
+          if-no-files-found: error
+
+  kalibr-pipeline:
+    needs: test-data
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository with submodules
@@ -69,3 +70,41 @@ jobs:
           file: thirdparty/kalibr/Dockerfile_ros1_20_04
           load: true
           tag: kalibr
+      - name: Download test data
+        uses: actions/download-artifact@v8
+        with:
+          name: benchmarking-data-zip
+          path: ${{ runner.temp }}/artifacts
+      # TODO(Jack): We will likely have this exact same step in the reprojection pipeline, should we make this into a
+      # reusable action code block then?
+      - name: Load test data into docker volume
+        run: |
+          set -eou pipefail
+
+          docker volume create benchmarking-data
+
+          docker run \
+            --mount "type=volume,source=benchmarking-data,target=/data" \
+            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts,readonly" \
+            --rm \
+            ubuntu:24.04 \
+              tar \
+                --directory=/data \
+                --extract \
+                --file=/artifacts/benchmarking-data.tar \
+                --verbose
+
+      - name: Run experiment
+        run: |
+          set -eou pipefail
+          
+          # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
+          # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
+          # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
+          docker compose \
+            --file compose.benchmark.yaml \
+            run \
+              --rm \
+              --no-deps \
+              kalibr
+ 

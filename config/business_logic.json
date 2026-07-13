@@ -1,0 +1,14 @@
+// TODO(Jack): If we do not end up using this please remove this!
+
+{
+  "camera_model_map": {
+    "double_sphere": {
+      "kalibr": "ds-none",
+      "reprojection": "double_sphere"
+    },
+    "pinhole_radtan": {
+      "kalibr": "pinhole-radtan",
+      "reprojection": "pinhole_radtan4"
+    }
+  }
+}

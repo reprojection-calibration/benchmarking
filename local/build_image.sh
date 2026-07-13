@@ -36,7 +36,7 @@ DOCKER_BUILDKIT=1 docker build \
     --tag "${tag}" \
     --target "${stage}"-stage \
     --progress=plain \
-    "${script_folder}"/../../
+    "${script_folder}"/../
 
 BUILD_SUCCESSFUL=$?
 
