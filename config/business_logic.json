@@ -1,3 +1,5 @@
+// TODO(Jack): If we do not end up using this please remove this!
+
 {
   "camera_model_map": {
     "double_sphere": {

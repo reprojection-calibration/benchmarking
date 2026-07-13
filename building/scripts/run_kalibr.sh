@@ -19,17 +19,22 @@ while read bag_i; do
     # NOTE(Jack): This removes the json quotes
     bag_i=$(echo "${bag_i}" | jq -r ".")
 
-    docker run --rm \
-      --entrypoint "/temporary/kalibr_entrypoint.sh" \
-      --mount "type=bind,source=${script_folder}/kalibr_entrypoint.sh,target=/temporary/kalibr_entrypoint.sh,readonly" \
-      --mount "type=bind,source=${target_config},target=/temporary${target_config},readonly" \
-      --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
-      --mount "type=volume,source=benchmarking-results,target=/results" \
-      kalibr:latest \
-      rosrun kalibr kalibr_calibrate_cameras \
-        --bag "/data/${bag_i}" \
-        --topics /cam0/image_raw \
-        --models ds-none \
-        --target "/temporary${target_config}"
+    while read camera_i; do
+        camera_i=$(echo "${camera_i}" | jq -r ".")
 
+        docker run --rm \
+          --entrypoint "/temporary/kalibr_entrypoint.sh" \
+          --env "CAMERA_TOPIC=${camera_i}" \
+          --mount "type=bind,source=${script_folder}/kalibr_entrypoint.sh,target=/temporary/kalibr_entrypoint.sh,readonly" \
+          --mount "type=bind,source=${target_config},target=/temporary${target_config}" \
+          --mount "type=volume,source=benchmarking-data,target=/data" \
+          kalibr:latest \
+          rosrun kalibr kalibr_calibrate_cameras \
+            --bag "/data/${bag_i}" \
+            --dont-show-report \
+            --models ds-none \
+            --target "/temporary${target_config}" \
+            --topics "${camera_i}"
+
+    done < <(jq ".cameras.[]" "${dataset_specification_json}")
 done < <(jq ".bags.[]" "${dataset_specification_json}")
