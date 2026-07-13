@@ -90,10 +90,8 @@ jobs:
               --file=/artifacts/benchmarking-data.tar.gz \
               --verbose
 
-      - name: Inspect restored volume
+      - name: Run benchmarking script
         run: |
-          docker run --rm \
-            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
-            ubuntu:24.04 \
-            find /data -maxdepth 2 -type f -printf '%p\n'
+          set -eoux pipefail
+          bash building/scripts/run_kalibr.sh
  
