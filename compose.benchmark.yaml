@@ -4,12 +4,8 @@ services:
       context: ./
       dockerfile: Dockerfile
       target: test-data-download-stage
+    command: [ "/bin/bash", "-c", "set -euou pipefail; cp /data/. /volume/mount/" ]
     image: benchmarking:test-data-download-stage
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        set -eou pipefail
-        cp --archive /data/. /volume/mount/
     volumes:
       - benchmarking-data:/volume/mount
 
@@ -17,12 +13,11 @@ services:
     build:
       context: thirdparty/kalibr
       dockerfile: Dockerfile_ros1_20_04
-    image: kalibr:latest
     depends_on:
       test-data:
         condition: service_completed_successfully
-    working_dir: /workspace
     entrypoint: /temporary/scripts/kalibr_entrypoint.sh
+    image: kalibr:latest
     volumes:
       - benchmarking-data:/data
       - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
