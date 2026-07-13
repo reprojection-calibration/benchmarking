@@ -52,6 +52,7 @@ jobs:
           path: ${{ runner.temp }}/artifacts/benchmarking-data.tar.gz
           if-no-files-found: error
   kalibr-pipeline:
+    needs: test-data
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository with submodules
@@ -71,7 +72,9 @@ jobs:
         with:
           name: benchmarking-data
           path: ${{ runner.temp }}/artifacts
-      - name: Put test data into docker volume
+      # TODO(Jack): We will likely have this exact same step in the reprojection pipeline, should we make this into a
+      # reusable action code block then?
+      - name: Load test data into docker volume
         run: |
           set -eoux pipefail
 
