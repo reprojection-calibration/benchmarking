@@ -46,6 +46,9 @@ def parse_camchain(input):
 
     bag = path.name.removesuffix(CAMCHAIN_SUFFIX)
 
+
+    # TODO COMBINE THE CAMERA MODEL AND DISTORTION MODEL INTO ONE
+    # TODO AVERAGE THE FOCAL LENGTHS INTO ONE ELEMENT!
     return {
         "bag": bag,
         "sensor": sensor,
