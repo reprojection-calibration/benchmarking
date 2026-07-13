@@ -90,8 +90,13 @@ jobs:
               --file=/artifacts/benchmarking-data.tar.gz \
               --verbose
 
-      - name: Run benchmarking script
+      - name: Run experiment
         run: |
           set -eoux pipefail
-          bash building/scripts/run_kalibr.sh
+          
+          docker compose \
+          --file compose.benchmark.yaml up \
+          --build \
+          --abort-on-container-exit \
+          --exit-code-from kalibr
  
