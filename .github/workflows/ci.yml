@@ -11,7 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-
 jobs:
   test-data:
     runs-on: ubuntu-latest
@@ -25,9 +24,9 @@ jobs:
           load: true
           tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
-      - name: Pack test data into zip file
+      - name: Pack the test data into a zip file
         run: |
-          set -eoux pipefail
+          set -eou pipefail
     
           mkdir --parents "${RUNNER_TEMP}/artifacts"
           
@@ -48,7 +47,7 @@ jobs:
       - name: Upload zipped test data
         uses: actions/upload-artifact@v7
         with:
-          name: benchmarking-data
+          name: benchmarking-data-zip
           path: ${{ runner.temp }}/artifacts/benchmarking-data.tar.gz
           if-no-files-found: error
   kalibr-pipeline:
@@ -70,13 +69,13 @@ jobs:
       - name: Download test data
         uses: actions/download-artifact@v8
         with:
-          name: benchmarking-data
+          name: benchmarking-data-zip
           path: ${{ runner.temp }}/artifacts
       # TODO(Jack): We will likely have this exact same step in the reprojection pipeline, should we make this into a
       # reusable action code block then?
       - name: Load test data into docker volume
         run: |
-          set -eoux pipefail
+          set -eou pipefail
 
           docker volume create benchmarking-data
 
@@ -92,14 +91,15 @@ jobs:
 
       - name: Run experiment
         run: |
-          set -eoux pipefail
+          set -eou pipefail
           
           # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
-          # both test data and kalibr build stages are built and cached in the pipeline before. 
+          # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
+          # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
           docker compose \
               --file compose.benchmark.yaml \
               run \
-              --rm \
-              --no-deps \
-              kalibr
+                  --rm \
+                  --no-deps \
+                  kalibr
  

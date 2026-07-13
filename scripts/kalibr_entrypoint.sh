@@ -1,13 +1,15 @@
 #!/bin/bash
 
-set -eo pipefail
+set -eoux pipefail
 
 # NOTE(Jack): These three lines are the classic lines found in the Kalibr dockerfile entrypoint
 export KALIBR_MANUAL_FOCAL_LENGTH_INIT=1
+set +u
 source "${WORKSPACE}/devel/setup.bash"
+set -u
 cd "${WORKSPACE}"
 
-# TODO(Jack): Updating and installing each to time we run the script is not so clean but we don't want to go change
+# TODO(Jack): Updating and installing each to time we run the script is not so clean but I don't want to go change
 # the kalibr image itself.
 apt-get update
 apt-get install --no-install-recommends --yes \
@@ -37,7 +39,7 @@ while read bag_i; do
 
         # NOTE(Jack): We need to clean the camera name from having slashes (ex. like in a ROS topic) because otherwise the
         # mkdir command below could interpret that as a multilevel path.
-        camera_name="${CAMERA_TOPIC#/}"
+        camera_name="${camera_i#/}"
         camera_name="${camera_name//\//_}"
 
         # TODO(Jack): We should protect against the case where there are no output files to move, if that is an error condition

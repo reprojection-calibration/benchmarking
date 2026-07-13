@@ -3,5 +3,6 @@
 set -eou pipefail
 
 docker compose \
-    --file compose.benchmark.yaml up \
-    --build
+    --file compose.benchmark.yaml \
+    up \
+      --build
