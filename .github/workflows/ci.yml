@@ -12,6 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # TODO(Jack): We should think about using gha "cache" as possible way to speed up the data handling here. It is just
+  # not needed to uploaded the artifact everytime and download it again. If we can just upload it once and store it in
+  # the cache that would make a lot of sense.
   test-data:
     runs-on: ubuntu-latest
     steps:
@@ -33,14 +36,14 @@ jobs:
           # NOTE(Jack): We actually do not apply any compression here because using --gzip was taking a long time. Is 
           # this ok? I think the upload-artifact action should itself do compression. Does it really matter?
           docker run \
-            --rm \
             --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
             --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            --rm \
             benchmarking:test-data-download-stage \
               tar \
                 --create \
                 --directory=/data \
-                --file=/artifacts/benchmarking-data.tar.gz \
+                --file=/artifacts/benchmarking-data.tar \
                 --verbose \
                 .
 
@@ -48,8 +51,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: benchmarking-data-zip
-          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar.gz
+          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar
           if-no-files-found: error
+
   kalibr-pipeline:
     needs: test-data
     runs-on: ubuntu-latest
@@ -79,15 +83,16 @@ jobs:
 
           docker volume create benchmarking-data
 
-          docker run --rm \
+          docker run \
             --mount "type=volume,source=benchmarking-data,target=/data" \
             --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts,readonly" \
+            --rm \
             ubuntu:24.04 \
-            tar \
-              --directory=/data \
-              --extract \
-              --file=/artifacts/benchmarking-data.tar.gz \
-              --verbose
+              tar \
+                --directory=/data \
+                --extract \
+                --file=/artifacts/benchmarking-data.tar \
+                --verbose
 
       - name: Run experiment
         run: |
@@ -97,9 +102,9 @@ jobs:
           # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
           # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
           docker compose \
-              --file compose.benchmark.yaml \
-              run \
-                  --rm \
-                  --no-deps \
-                  kalibr
+            --file compose.benchmark.yaml \
+            run \
+              --rm \
+              --no-deps \
+              kalibr
  

@@ -10,7 +10,7 @@
     "/cam1/image_raw"
   ],
   "imus": [
-    "imu0"
+    "/imu0"
   ]
 }
 
