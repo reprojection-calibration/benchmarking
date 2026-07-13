@@ -1,0 +1,33 @@
+services:
+  test-data:
+    build:
+      context: building
+      dockerfile: Dockerfile
+      target: test-data-download-stage
+    image: benchmarking:test-data-download-stage
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -eou pipefail
+        cp --archive /data/. /volume/mount/
+    volumes:
+      - benchmarking-data:/volume/mount
+
+  kalibr:
+    build:
+      context: thirdparty/kalibr
+      dockerfile: Dockerfile_ros1_20_04
+    image: kalibr:latest
+    depends_on:
+      test-data:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    entrypoint: /temporary/building/scripts/kalibr_entrypoint.sh
+    volumes:
+      - benchmarking-data:/data
+      - ./building/scripts/kalibr_entrypoint.sh:/temporary/building/scripts/kalibr_entrypoint.sh:ro
+      - ./config:/config:ro
+
+volumes:
+  benchmarking-data:
+    name: benchmarking-data
