@@ -1,7 +1,7 @@
 {
   "camera_model_map": {
     "double_sphere": {
-      "kalibr": "ds",
+      "kalibr": "ds-none",
       "reprojection": "double_sphere"
     },
     "pinhole_radtan": {
