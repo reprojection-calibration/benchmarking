@@ -1,11 +1,18 @@
 #!/bin/bash
 
-set -eox pipefail
+set -eo pipefail
 
 # NOTE(Jack): These three lines are the classic lines found in the Kalibr dockerfile entrypoint
 export KALIBR_MANUAL_FOCAL_LENGTH_INIT=1
 source "${WORKSPACE}/devel/setup.bash"
 cd "${WORKSPACE}"
+
+# TODO(Jack): Updating and installing each to time we run the script is not so clean but we don't want to go change
+# the kalibr image itself.
+apt-get update
+apt-get install --no-install-recommends --yes \
+    jq
+rm --force --recursive /var/lib/apt/lists/*
 
 dataset_specification_json="/temporary/config/dataset_specification.json"
 target_config="/temporary/config/kalibr/april_6x6_80x80cm.yaml"
@@ -25,7 +32,7 @@ while read bag_i; do
           --bag "/data/${bag_i}" \
           --dont-show-report \
           --models ds-none \
-          --target "/temporary${target_config}" \
+          --target "${target_config}" \
           --topics "${camera_i}"
 
         # NOTE(Jack): We need to clean the camera name from having slashes (ex. like in a ROS topic) because otherwise the
@@ -43,5 +50,5 @@ while read bag_i; do
         mkdir --parents "/data/kalibr/${camera_name}"
         mv -- /data/*.pdf /data/*.txt /data/*.yaml "/data/kalibr/${camera_name}"
 
-    done < <(jq ".cameras.[]" "${dataset_specification_json}")
-done < <(jq ".bags.[]" "${dataset_specification_json}")
+    done < <(jq ".cameras[]" "${dataset_specification_json}")
+done < <(jq ".bags[]" "${dataset_specification_json}")
