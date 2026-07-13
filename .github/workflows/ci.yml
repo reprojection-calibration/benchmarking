@@ -23,7 +23,7 @@ jobs:
           cache_scope: test-data-download
           context: .
           load: true
-          tag: reprojection:test-data-download-stage
+          tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
       - name: Pack test data into zip file
         run: |
@@ -94,9 +94,12 @@ jobs:
         run: |
           set -eoux pipefail
           
+          # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
+          # both test data and kalibr build stages are built and cached in the pipeline before. 
           docker compose \
-          --file compose.benchmark.yaml up \
-          --build \
-          --abort-on-container-exit \
-          --exit-code-from kalibr
+              --file compose.benchmark.yaml \
+              run \
+              --rm \
+              --no-deps \
+              kalibr
  
