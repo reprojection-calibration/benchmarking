@@ -10,7 +10,7 @@ for i in "$@"; do
   case "${i}" in
     --mount-local)
       script_folder="$(dirname "$(realpath -s "$0")")"
-      local_mount=("${script_folder}/../../:/temporary")
+      local_mount=("${script_folder}/../:/temporary")
       shift
       ;;
     --stage)

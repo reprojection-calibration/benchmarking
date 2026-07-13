@@ -2,7 +2,7 @@ services:
   test-data:
     build:
       context: ./
-      dockerfile: building/Dockerfile
+      dockerfile: Dockerfile
       target: test-data-download-stage
     image: benchmarking:test-data-download-stage
     entrypoint: ["/bin/bash", "-c"]
@@ -22,10 +22,10 @@ services:
       test-data:
         condition: service_completed_successfully
     working_dir: /workspace
-    entrypoint: /temporary/building/scripts/kalibr_entrypoint.sh
+    entrypoint: /temporary/scripts/kalibr_entrypoint.sh
     volumes:
       - benchmarking-data:/data
-      - ./building/scripts/kalibr_entrypoint.sh:/temporary/building/scripts/kalibr_entrypoint.sh:ro
+      - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
       - ./config:/temporary/config:ro
 
 volumes:
