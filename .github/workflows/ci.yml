@@ -25,35 +25,40 @@ jobs:
           load: true
           tag: reprojection:test-data-download-stage
           target: test-data-download-stage
-      - name: Extract rosbags
+      - name: Copy test data into Docker volume
         run: |
-          docker create --name test-data-download-container reprojection:test-data-download-stage
-          
-          mkdir --parents "${RUNNER_TEMP}/data"
-          docker cp "test-data-download-container:/data/." \
-            "${RUNNER_TEMP}/data"
-          
-          docker rm test-data-download-container
-      - name: Upload dataset-calib-imu1_512_16
+          set -eoux pipefail
+    
+          docker volume create benchmarking-data
+    
+          docker run --rm \
+            --mount "type=volume,source=benchmarking-data,target=/volume/mount" \
+            --entrypoint bash \
+            reprojection:test-data-download-stage -c 'cp --archive /data/. /volume/mount/'
+
+      - name: Package Docker volume
+        run: |
+          set -eoux pipefail
+    
+          mkdir --parents "${RUNNER_TEMP}/artifacts"
+    
+          docker run --rm \
+            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
+            ubuntu:24.04 \
+            tar \
+              --create \
+              --gzip \
+              --file=/artifacts/benchmarking-data.tar.gz \
+              --directory=/data \
+              .
+
+      - name: Upload benchmarking data
         uses: actions/upload-artifact@v7
         with:
-          name: dataset-calib-imu1_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu1_512_16.bag
-      - name: Upload dataset-calib-imu2_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu2_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu2_512_16.bag
-      - name: Upload dataset-calib-imu3_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu3_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu3_512_16.bag
-      - name: Upload dataset-calib-imu4_512_16
-        uses: actions/upload-artifact@v7
-        with:
-          name: dataset-calib-imu4_512_16
-          path: ${{ runner.temp }}/data/dataset-calib-imu4_512_16.bag
+          name: benchmarking-data
+          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar.gz
+          if-no-files-found: error
   kalibr-build:
     runs-on: ubuntu-latest
     steps:
