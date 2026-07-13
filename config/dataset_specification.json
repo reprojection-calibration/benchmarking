@@ -1,0 +1,16 @@
+{
+  "bags": [
+    "dataset-calib-imu1_512_16.bag",
+    "dataset-calib-imu2_512_16.bag",
+    "dataset-calib-imu3_512_16.bag",
+    "dataset-calib-imu4_512_16.bag"
+  ],
+  "cameras": [
+    "/cam0/image_raw",
+    "/cam1/image_raw"
+  ],
+  "imus": [
+    "imu0"
+  ]
+}
+
