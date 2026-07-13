@@ -9,7 +9,8 @@ script_folder="$(dirname "$(realpath -s "$0")")"
 
 docker run --rm \
   --entrypoint "/temporary/kalibr_entrypoint.sh" \
-  --mount "type=bind,source=${script_folder}/kalibr_entrypoint.sh,target=/temporary/kalibr_entrypoint.sh" \
+  --mount "type=bind,source=${script_folder}/kalibr_entrypoint.sh,target=/temporary/kalibr_entrypoint.sh,readonly" \
+  --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
   kalibr:latest \
   rosrun kalibr kalibr_calibrate_cameras \
     --bag /data/input.bag \

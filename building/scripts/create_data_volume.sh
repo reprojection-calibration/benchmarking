@@ -8,4 +8,4 @@ docker volume create benchmarking-data
 docker run --rm \
   --volume benchmarking-data:/volume/data \
   benchmarking:test-data-download \
-  cp --recursive /data /volume/data
+  cp --recursive /data/. /volume/data
