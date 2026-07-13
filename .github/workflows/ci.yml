@@ -31,6 +31,8 @@ jobs:
     
           mkdir --parents "${RUNNER_TEMP}/artifacts"
           
+          # NOTE(Jack): We actually do not apply any compression here because using --gzip was taking a long time. Is 
+          # this ok? I think the upload-artifact action should itself do compression. Does it really matter?
           docker run \
             --rm \
             --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
@@ -40,7 +42,6 @@ jobs:
                 --create \
                 --directory=/data \
                 --file=/artifacts/benchmarking-data.tar.gz \
-                --gzip \
                 --verbose \
                 .
 
@@ -50,7 +51,7 @@ jobs:
           name: benchmarking-data
           path: ${{ runner.temp }}/artifacts/benchmarking-data.tar.gz
           if-no-files-found: error
-  kalibr-build:
+  kalibr-pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository with submodules
@@ -65,3 +66,31 @@ jobs:
           file: thirdparty/kalibr/Dockerfile_ros1_20_04
           load: true
           tag: kalibr
+      - name: Download test data
+        uses: actions/download-artifact@v8
+        with:
+          name: benchmarking-data
+          path: ${{ runner.temp }}/artifacts
+      - name: Put test data into docker volume
+        run: |
+          set -eoux pipefail
+
+          docker volume create benchmarking-data
+
+          docker run --rm \
+            --mount "type=volume,source=benchmarking-data,target=/data" \
+            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts,readonly" \
+            ubuntu:24.04 \
+            tar \
+              --directory=/data \
+              --extract \
+              --file=/artifacts/benchmarking-data.tar.gz \
+              --verbose
+
+      - name: Inspect restored volume
+        run: |
+          docker run --rm \
+            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            ubuntu:24.04 \
+            find /data -maxdepth 2 -type f -printf '%p\n'
+ 

@@ -7,6 +7,8 @@ set -eou pipefail
 
 
 script_folder="$(dirname "$(realpath -s "$0")")"
+
+# TODO(Jack): Find a better way to hardcode these paths!
 dataset_specification_json="${script_folder}/../../config/dataset_specification.json"
 target_config="${script_folder}/../../config/kalibr/april_6x6_80x80cm.yaml"
 target_config="$(realpath -s "${target_config}")"
