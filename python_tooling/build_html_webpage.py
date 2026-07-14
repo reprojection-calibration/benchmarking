@@ -6,12 +6,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 PARAMETERS = {
-    "fx": ("Focal length fx", "px"),
-    "fy": ("Focal length fy", "px"),
-    "cx": ("Principal point cx", "px"),
-    "cy": ("Principal point cy", "px"),
-    "xi": ("Double Sphere xi", ""),
-    "alpha": ("Double Sphere alpha", ""),
+    "fx": ("fx", "px"),
+    "fy": ("fy", "px"),
+    "cx": ("cx", "px"),
+    "cy": ("cy", "px"),
+    "xi": ("xi", ""),
+    "alpha": ("alpha", ""),
 }
 
 LIBRARY_COLORS = [
@@ -35,7 +35,7 @@ LIBRARY_SYMBOLS = [
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="Create a static number-line report for camera calibration results."
+        description="Build the html webpage report for calibration results."
     )
     parser.add_argument("input_csv", type=Path)
     parser.add_argument("output_html", type=Path)
