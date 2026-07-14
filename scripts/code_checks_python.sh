@@ -4,5 +4,5 @@ set -eoux pipefail
 
 black --version
 
-black --check --diff --verbose '/temporary/python_tooling'
-isort --check '/temporary/python_tooling'
+black --check --diff --verbose '/python_tooling'
+isort --check '/python_tooling'
