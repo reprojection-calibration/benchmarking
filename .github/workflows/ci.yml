@@ -58,8 +58,7 @@ jobs:
     needs: test-data
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Build the Kalibr image
@@ -115,7 +114,7 @@ jobs:
             run --no-deps --rm kalibr
           
           docker compose --file compose.benchmark.yaml \
-            run --no-deps --rm python-tooling
+            run --no-deps --rm parse-kalibr
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
@@ -132,42 +131,37 @@ jobs:
     needs: kalibr-pipeline
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+      # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
+      # TODO(Jack): Does the cache get shared across jobs? I think it does, regardless we need a more official way...
+      - name: Build the python tooling image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: python-tooling
+          context: .
+          load: true
+          tag: benchmarking:python-tooling-stage
+          target: python-tooling-stage
       - name: Download parsed Kalibr results
         uses: actions/download-artifact@v8
         with:
           name: parsed-kalibr-result
-          path: website
+          path: ${{ github.workspace }}
       - name: Create result webpage
         run: |
           set -eou pipefail
           
-          test -f "website/parsed_kalibr_result.csv"
+          test -f "${GITHUB_WORKSPACE}/parsed_kalibr_result.csv"
           
-          cat > "website/index.html" <<'EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Kalibr Benchmark Results</title>
-            </head>
-            <body>
-              <main>
-                <h1>Kalibr Benchmark Results</h1>         
-                <p>
-                  <a href="./parsed_kalibr_result.csv" download>
-                    Download parsed Kalibr results
-                  </a>
-                </p>
-              </main>
-            </body>
-          </html>
-          EOF
+          # TODO(Jack): Should we pass the output directory here?
+          docker compose --file compose.benchmark.yaml \
+            run --no-deps --rm build-results-page
+
       - name: Upload result webpage
         uses: actions/upload-artifact@v7
         with:
           name: result-webpage
-          path: website/
+          path: ${{ github.workspace }}/index.html
           if-no-files-found: error
 
   deploy-results-webpage:
@@ -185,17 +179,17 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
-      - name: Download parsed Kalibr results
+      - name: Download built webpage
         uses: actions/download-artifact@v8
         with:
           name: result-webpage
-          path: website
+          path: ${{ github.workspace }}/website
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website
+          path: ${{ github.workspace }}/website
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

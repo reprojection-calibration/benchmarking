@@ -23,22 +23,36 @@ services:
       - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
       - ./config:/temporary/config:ro
 
-  python-tooling:
+  python-tooling-image:
     build:
       context: ./
       dockerfile: Dockerfile
       target: python-tooling-stage
+    image: benchmarking:python-tooling-stage
+
+  parse-kalibr:
     depends_on:
       kalibr:
         condition: service_completed_successfully
+      python-tooling-image:
+        condition: service_completed_successfully
+    image: benchmarking:python-tooling-stage
     # NOTE(Jack): This line here is important because it writes the parsed output directly to the host and not a docker
     # volume! If this is a long term strategy I am not 100% sure.
-    # TODO(Jack): One day we will also need to parse the reprojection results from here, make sure to adjust all naming
-    # and contexts to reflect that!
     entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "/data/kalibr", "/temporary/output/parsed_kalibr_result.csv"]
-    image: benchmarking:python-tooling-stage
     volumes:
       - benchmarking-data:/data
+      - ./:/temporary/output
+
+  build-results-page:
+    depends_on:
+      parse-kalibr:
+        condition: service_completed_successfully
+      python-tooling-image:
+        condition: service_completed_successfully
+    image: benchmarking:python-tooling-stage
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/output/index.html", "--results", "kalibr", "/temporary/output/parsed_kalibr_result.csv"]
+    volumes:
       - ./:/temporary/output
 
 volumes:
