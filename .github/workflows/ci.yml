@@ -132,6 +132,15 @@ jobs:
     needs: kalibr-pipeline
     runs-on: ubuntu-latest
     steps:
+      # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
+      - name: Build the python tooling image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: python-tooling
+          context: .
+          load: true
+          tag: benchmarking:python-tooling-stage
+          target: python-tooling-stage
       - name: Download parsed Kalibr results
         uses: actions/download-artifact@v8
         with:
