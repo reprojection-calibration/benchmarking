@@ -125,6 +125,6 @@ jobs:
       - name: Upload parsed kalibr results
         uses: actions/upload-artifact@v7
         with:
-          name: parsed-kalibr-results
-          path: ${GITHUB_WORKSPACE}/parsed_kalibr_result.csv
+          name: parsed-kalibr-result
+          path: ${{ github.workspace }}/parsed_kalibr_result.csv
           if-no-files-found: error

@@ -4,7 +4,7 @@ services:
       context: ./
       dockerfile: Dockerfile
       target: test-data-download-stage
-    command: [ "/bin/bash", "-c", "set -euou pipefail; cp --recursive /data/. /volume/mount/" ]
+    command: [ "/bin/bash", "-c", "set -eou pipefail; cp --recursive /data/. /volume/mount/" ]
     image: benchmarking:test-data-download-stage
     volumes:
       - benchmarking-data:/volume/mount
