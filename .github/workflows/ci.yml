@@ -112,10 +112,10 @@ jobs:
           # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
           # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
           docker compose --file compose.benchmark.yaml \
-            run --no-deps --rm kalibr
+            run --no-build --no-deps --rm kalibr
           
           docker compose --file compose.benchmark.yaml \
-            run --no-deps --rm python-tooling
+            run --no-build --no-deps --rm python-tooling
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
@@ -124,10 +124,51 @@ jobs:
           path: ${{ github.workspace }}/parsed_kalibr_result.csv
           if-no-files-found: error
 
-  deploy-results:
-    # TODO(Jack): We need to find a way to let us view a preview before merging to master!
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  build-results-webpage:
     needs: kalibr-pipeline
+    runs-on: ubuntu-latest
+    steps:
+     - name: Download parsed Kalibr results
+       uses: actions/download-artifact@v8
+       with:
+         name: parsed-kalibr-result
+         path: website
+     - name: Create result webpage
+       run: |
+         set -eou pipefail
+         
+         test -f "website/parsed_kalibr_result.csv"
+         
+         cat > "website/index.html" <<'EOF'
+         <!doctype html>
+         <html lang="en">
+           <head>
+             <meta charset="utf-8">
+             <meta name="viewport" content="width=device-width, initial-scale=1">
+             <title>Kalibr Benchmark Results</title>
+           </head>
+           <body>
+             <main>
+               <h1>Kalibr Benchmark Results</h1>         
+               <p>
+                 <a href="./parsed_kalibr_result.csv" download>
+                   Download parsed Kalibr results
+                 </a>
+               </p>
+             </main>
+           </body>
+         </html>
+         EOF
+     - name: Upload result webpage
+       uses: actions/upload-artifact@v7
+       with:
+         name: result-webpage
+         path: website/
+         if-no-files-found: error
+
+  deploy-results-webpage:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-results-webpage
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -143,40 +184,8 @@ jobs:
       - name: Download parsed Kalibr results
         uses: actions/download-artifact@v8
         with:
-          name: parsed-kalibr-result
+          name: result-webpage
           path: website
-      - name: Create results page
-        run: |
-          set -eou pipefail
-  
-          test -f website/parsed_kalibr_result.csv
-  
-          cat > website/index.html <<'EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Kalibr Benchmark Results</title>
-            </head>
-            <body>
-              <main>
-                <h1>Kalibr Benchmark Results</h1>
-  
-                <p>
-                  Latest results generated from the main branch.
-                </p>
-  
-                <p>
-                  <a href="./parsed_kalibr_result.csv" download>
-                    Download parsed Kalibr results
-                  </a>
-                </p>
-              </main>
-            </body>
-          </html>
-          EOF
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
