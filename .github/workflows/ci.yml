@@ -58,8 +58,7 @@ jobs:
     needs: test-data
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Build the Kalibr image
@@ -132,6 +131,7 @@ jobs:
     needs: kalibr-pipeline
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
       # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
       - name: Build the python tooling image
         uses: ./.github/actions/docker-build
