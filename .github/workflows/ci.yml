@@ -116,6 +116,9 @@ jobs:
           
           docker compose --file compose.benchmark.yaml \
             run --no-deps --rm python-tooling
+          
+          ls
+          ls ${GITHUB_WORKSPACE}
 
       - name: Upload parsed kalibr results
         uses: actions/upload-artifact@v7
