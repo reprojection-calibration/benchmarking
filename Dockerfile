@@ -6,7 +6,7 @@ RUN --mount=type=bind,source=${DOWNLOAD_TEST_DATA},target=/temporary/${DOWNLOAD_
 
 FROM python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 AS python-tooling-stage
 
-RUN pip install black isort PyYAML
+RUN pip install PyYAML black isort pandas plotly
 
 # NOTE(Jack): We copy the code directly in because we don't want to have to mount the code when we use this in CI
 COPY python_tooling/ python_tooling/
