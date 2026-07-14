@@ -35,19 +35,35 @@ LIBRARY_SYMBOLS = [
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="Build the html webpage report for calibration results."
+        description=(
+            "Build an HTML webpage containing number-line plots for "
+            "camera calibration results."
+        )
     )
-    parser.add_argument("input_csv", type=Path)
-    parser.add_argument("output_html", type=Path)
+
     parser.add_argument(
-        "--library",
-        default="Kalibr",
-        help="Library name used when the CSV has no calibration_library column.",
+        "output_html",
+        type=Path,
+        help="Path of the generated HTML report.",
     )
+
+    parser.add_argument(
+        "--results",
+        action="append",
+        nargs=2,
+        metavar=("LIBRARY", "CSV"),
+        required=True,
+        help=(
+            "Calibration library name and the CSV file containing its parsed "
+            "results. Pass this option once for each calibration library."
+        ),
+    )
+
     return parser.parse_args()
 
 
-def load_results(path, default_library):
+def load_results(path, library):
+    path = Path(path)
     results = pd.read_csv(path)
 
     required_columns = {
@@ -60,32 +76,35 @@ def load_results(path, default_library):
     missing_columns = required_columns - set(results.columns)
     if missing_columns:
         raise ValueError(
-            f"Missing required columns: {', '.join(sorted(missing_columns))}"
+            f"{path}: missing required columns: "
+            f"{', '.join(sorted(missing_columns))}"
         )
 
     if results.empty:
         raise ValueError(f"No calibration results found in {path}")
 
-    if "calibration_library" not in results.columns:
-        results["calibration_library"] = default_library
+    # NOTE(Jack): The library name is supplied externally because parsed result files do
+    # not contain calibration-library metadata.
+    results["calibration_library"] = library
 
     if "source_file" not in results.columns:
         results["source_file"] = ""
 
     for parameter in PARAMETERS:
-        numeric = pd.to_numeric(results[parameter], errors="coerce")
-        invalid = numeric.isna() & results[parameter].notna()
+        numeric_values = pd.to_numeric(results[parameter], errors="coerce")
 
-        if invalid.any():
-            invalid_values = results.loc[invalid, parameter].astype(str).unique()
-            raise ValueError(
-                f"Column {parameter!r} contains non-numeric values: "
-                f"{', '.join(invalid_values)}"
-            )
-
-        results[parameter] = numeric
+        results[parameter] = numeric_values
 
     return results
+
+
+def load_all_results(result_inputs):
+    result_frames = []
+
+    for library, csv_path in result_inputs:
+        result_frames.append(load_results(path=Path(csv_path), library=library))
+
+    return pd.concat(result_frames, ignore_index=True)
 
 
 def expanded_range(values):
@@ -100,22 +119,34 @@ def expanded_range(values):
     return minimum - padding, maximum + padding
 
 
-def make_figure(results):
-    parameter_count = len(PARAMETERS)
-    sensors = list(results["sensor_name"].drop_duplicates())
-    libraries = list(results["calibration_library"].drop_duplicates())
-
-    sensor_positions = {
-        sensor: position for position, sensor in enumerate(reversed(sensors))
-    }
-
-    library_styles = {
+def make_library_styles(libraries):
+    return {
         library: {
             "color": LIBRARY_COLORS[index % len(LIBRARY_COLORS)],
             "symbol": LIBRARY_SYMBOLS[index % len(LIBRARY_SYMBOLS)],
         }
         for index, library in enumerate(libraries)
     }
+
+
+def make_sensor_positions(sensors):
+    return {sensor: position for position, sensor in enumerate(reversed(sensors))}
+
+
+def make_figure(results):
+    parameter_count = len(PARAMETERS)
+
+    sensors = list(results["sensor_name"].drop_duplicates())
+    libraries = list(results["calibration_library"].drop_duplicates())
+
+    if not sensors:
+        raise ValueError("No sensors found in the calibration results")
+
+    if not libraries:
+        raise ValueError("No calibration libraries were provided")
+
+    sensor_positions = make_sensor_positions(sensors)
+    library_styles = make_library_styles(libraries)
 
     figure = make_subplots(
         rows=parameter_count,
@@ -138,7 +169,7 @@ def make_figure(results):
     for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
         x_min, x_max = expanded_range(results[parameter])
 
-        # Draw one horizontal number line for each sensor.
+        # Draw one horizontal number line for every sensor.
         for sensor, y_position in sensor_positions.items():
             figure.add_shape(
                 type="line",
@@ -155,20 +186,15 @@ def make_figure(results):
                 col=1,
             )
 
-        # Put every result for the same camera on the same number line.
+        # Place every result for the same sensor on the same number line.
         for library_index, library in enumerate(libraries):
             selection = results[results["calibration_library"] == library].copy()
 
             if selection.empty:
                 continue
 
-            # Small deterministic offsets prevent different libraries from
-            # completely covering each other while preserving the number-line
-            # interpretation.
-            offset = (library_index - (len(libraries) - 1) / 2) * 0.10
-
-            selection["sensor_position"] = (
-                selection["sensor_name"].map(sensor_positions) + offset
+            selection["sensor_position"] = selection["sensor_name"].map(
+                sensor_positions
             )
 
             style = library_styles[library]
@@ -222,7 +248,10 @@ def make_figure(results):
             tickmode="array",
             tickvals=list(sensor_positions.values()),
             ticktext=list(sensor_positions.keys()),
-            range=[-0.55, max(sensor_positions.values()) + 0.55],
+            range=[
+                -0.55,
+                max(sensor_positions.values()) + 0.55,
+            ],
             showgrid=False,
             zeroline=False,
             ticks="",
@@ -249,7 +278,10 @@ def make_figure(results):
         },
         template="plotly_white",
         autosize=True,
-        height=max(1250, parameter_count * (170 + 45 * sensor_count)),
+        height=max(
+            1250,
+            parameter_count * (170 + 45 * sensor_count),
+        ),
         margin={
             "l": 145,
             "r": 35,
@@ -265,7 +297,9 @@ def make_figure(results):
         plot_bgcolor="#ffffff",
         hovermode="closest",
         legend={
-            "title": {"text": "Calibration library"},
+            "title": {
+                "text": "Calibration library",
+            },
             "orientation": "h",
             "x": 0.02,
             "xanchor": "left",
@@ -279,21 +313,23 @@ def make_figure(results):
         annotation.update(
             x=0,
             xanchor="left",
-            font={"size": 16, "color": "#334155"},
+            font={
+                "size": 16,
+                "color": "#334155",
+            },
         )
 
     return figure
 
 
-def main():
-    arguments = parse_arguments()
-    results = load_results(arguments.input_csv, arguments.library)
-    figure = make_figure(results)
-
-    arguments.output_html.parent.mkdir(parents=True, exist_ok=True)
+def write_figure(figure, output_html):
+    output_html.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     figure.write_html(
-        arguments.output_html,
+        output_html,
         full_html=True,
         include_plotlyjs=True,
         config={
@@ -314,6 +350,18 @@ def main():
                 "filename": "double_sphere_intrinsics_number_lines",
             },
         },
+    )
+
+
+def main():
+    arguments = parse_arguments()
+
+    results = load_all_results(arguments.results)
+    figure = make_figure(results)
+
+    write_figure(
+        figure,
+        arguments.output_html,
     )
 
     print(f"Wrote report to {arguments.output_html}")
