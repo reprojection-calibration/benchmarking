@@ -117,23 +117,7 @@ def expanded_range(values, minimum_width=0.0):
     return center - half_width, center + half_width
 
 
-def make_library_styles(libraries):
-    return {
-        library: {
-            "color": LIBRARY_COLORS[index % len(LIBRARY_COLORS)],
-            "symbol": LIBRARY_SYMBOLS[index % len(LIBRARY_SYMBOLS)],
-        }
-        for index, library in enumerate(libraries)
-    }
-
-
-def make_sensor_positions(sensors):
-    return {sensor: position for position, sensor in enumerate(reversed(sensors))}
-
-
 def make_figure(results):
-    parameter_count = len(PARAMETERS)
-
     sensors = list(results["sensor_name"].drop_duplicates())
     libraries = list(results["calibration_library"].drop_duplicates())
 
@@ -143,16 +127,21 @@ def make_figure(results):
     if not libraries:
         raise ValueError("No calibration libraries were provided")
 
-    sensor_positions = make_sensor_positions(sensors)
-    library_styles = make_library_styles(libraries)
+    sensor_positions = {
+        sensor: position for position, sensor in enumerate(reversed(sensors))
+    }
+    library_styles = {
+        library: {
+            "color": LIBRARY_COLORS[index % len(LIBRARY_COLORS)],
+            "symbol": LIBRARY_SYMBOLS[index % len(LIBRARY_SYMBOLS)],
+        }
+        for index, library in enumerate(libraries)
+    }
 
     figure = make_subplots(
-        rows=parameter_count,
+        rows=len(PARAMETERS),
         cols=1,
-        subplot_titles=[
-            f"{title}{f' ({unit})' if unit else ''}"
-            for title, unit in PARAMETERS.values()
-        ],
+        subplot_titles=[f"{title}" for title, _ in PARAMETERS.values()],
         vertical_spacing=0.055,
     )
 
@@ -183,7 +172,7 @@ def make_figure(results):
             )
 
         # Place every result for the same sensor on the same number line.
-        for library_index, library in enumerate(libraries):
+        for _, library in enumerate(libraries):
             selection = results[results["calibration_library"] == library].copy()
 
             if selection.empty:
@@ -274,7 +263,7 @@ def make_figure(results):
         autosize=True,
         height=max(
             1250,
-            parameter_count * (170 + 45 * sensor_count),
+            len(PARAMETERS) * (170 + 45 * sensor_count),
         ),
         margin={
             "l": 145,
