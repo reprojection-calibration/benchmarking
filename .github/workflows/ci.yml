@@ -128,9 +128,9 @@ jobs:
     # WARN(Jack): This means this workflow will run during the pull request before anything has been merged to master!
     # Updating the public official website with non-master merges is definitely not nice! We need to somehow have a PR
     # preview version of the webpage that is different than the master merged version.
-    if: >
-      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    #if: >
+    #  (github.event_name == 'pull_request' && github.z == 'main') ||
+    #  (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: kalibr-pipeline
     runs-on: ubuntu-latest
     permissions:
