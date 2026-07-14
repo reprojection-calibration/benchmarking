@@ -158,10 +158,7 @@ def make_figure(results):
 
     custom_columns = [
         "bag",
-        "sensor_name",
         "camera_model",
-        "calibration_library",
-        "source_file",
     ]
 
     for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
@@ -220,11 +217,8 @@ def make_figure(results):
                     hovertemplate=(
                         f"<b>{title}: %{{x:.10g}}"
                         f"{f' {unit}' if unit else ''}</b><br>"
-                        "Camera: %{customdata[1]}<br>"
                         "Dataset: %{customdata[0]}<br>"
-                        "Library: %{customdata[3]}<br>"
-                        "Model: %{customdata[2]}<br>"
-                        "Source: %{customdata[4]}"
+                        "Model: %{customdata[1]}<br>"
                         "<extra></extra>"
                     ),
                 ),
