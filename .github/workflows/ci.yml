@@ -133,6 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
+      # TODO(Jack): Does the cache get shared across jobs? I think it does, regardless we need a more official way...
       - name: Build the python tooling image
         uses: ./.github/actions/docker-build
         with:
@@ -145,12 +146,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: parsed-kalibr-result
-          path: website
+          path: ${{ github.workspace }}
       - name: Create result webpage
         run: |
           set -eou pipefail
           
-          test -f "website/parsed_kalibr_result.csv"
+          test -f "parsed_kalibr_result.csv"
           
           docker compose --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
@@ -159,7 +160,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: result-webpage
-          path: website/
+          path: index.html
           if-no-files-found: error
 
   deploy-results-webpage:
