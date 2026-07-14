@@ -70,6 +70,14 @@ jobs:
           file: thirdparty/kalibr/Dockerfile_ros1_20_04
           load: true
           tag: kalibr
+      - name: Build the python tooling image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: python-tooling
+          context: .
+          load: true
+          tag: benchmarking:python-tooling-stage
+          target: python-tooling-stage
       - name: Download test data
         uses: actions/download-artifact@v8
         with:
@@ -107,4 +115,17 @@ jobs:
               --rm \
               --no-deps \
               kalibr
- 
+          
+          docker compose \
+            --file compose.benchmark.yaml \
+            run \
+              --rm \
+              --no-deps \
+              python-tooling
+
+      - name: Upload parsed kalibr results
+        uses: actions/upload-artifact@v7
+        with:
+          name: parsed-kalibr-results
+          path: ${GITHUB_WORKSPACE}/parsed_kalibr_result.csv
+          if-no-files-found: error
