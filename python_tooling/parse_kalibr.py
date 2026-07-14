@@ -51,7 +51,7 @@ def parse_camchain(input):
 
     # NOTE(Jack): See the camera_model_map in config/business_logic.json for the list of acceptable camera model names
     # and formatting.
-    camera_model = f"{camera["camera_model"]}-{camera["distortion_model"]}"
+    camera_model = f"{camera['camera_model']}-{camera['distortion_model']}"
 
     # TODO COMBINE THE CAMERA MODEL AND DISTORTION MODEL INTO ONE
     # TODO AVERAGE THE FOCAL LENGTHS INTO ONE ELEMENT!
@@ -86,18 +86,17 @@ def arg_parser():
         type=Path,
         help="CSV file to create.",
     )
-    args = parser.parse_args()
+
+    return parser.parse_args()
 
 
 def main():
     args = arg_parser()
 
     camchain_files = collect_camchain_files(args.kalibr_directory)
-
     rows = [parse_camchain(load_camchain(path)) for path in camchain_files]
 
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-
     with args.output_csv.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=rows[0].keys())
         writer.writeheader()
