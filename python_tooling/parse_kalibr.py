@@ -8,6 +8,8 @@ CAMCHAIN_SUFFIX = "-camchain.yaml"
 
 
 def collect_camchain_files(kalibr_directory):
+    kalibr_directory = Path(kalibr_directory)
+
     camchain_files = sorted(kalibr_directory.glob(f"*/*{CAMCHAIN_SUFFIX}"))
 
     if not camchain_files:
@@ -46,7 +48,6 @@ def parse_camchain(input):
 
     bag = path.name.removesuffix(CAMCHAIN_SUFFIX)
 
-
     # TODO COMBINE THE CAMERA MODEL AND DISTORTION MODEL INTO ONE
     # TODO AVERAGE THE FOCAL LENGTHS INTO ONE ELEMENT!
     return {
@@ -68,7 +69,7 @@ def parse_camchain(input):
     }
 
 
-def main() -> None:
+def arg_parser():
     parser = argparse.ArgumentParser(
         description="Extract Kalibr camera intrinsics from camchain YAML files."
     )
@@ -83,6 +84,10 @@ def main() -> None:
         help="CSV file to create.",
     )
     args = parser.parse_args()
+
+
+def main():
+    args = arg_parser()
 
     camchain_files = collect_camchain_files(args.kalibr_directory)
 
