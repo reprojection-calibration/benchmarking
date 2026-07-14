@@ -33,6 +33,8 @@ services:
         condition: service_completed_successfully
     # NOTE(Jack): This line here is important because it writes the parsed output directly to the host and not a docker
     # volume! If this is a long term strategy I am not 100% sure.
+    # TODO(Jack): One day we will also need to parse the reprojection results from here, make sure to adjust all naming
+    # and contexts to reflect that!
     entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "/data/kalibr", "/temporary/output/parsed_kalibr_result.csv"]
     image: benchmarking:python-tooling-stage
     volumes:
