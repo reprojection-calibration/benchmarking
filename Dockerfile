@@ -6,9 +6,12 @@ RUN --mount=type=bind,source=${DOWNLOAD_TEST_DATA},target=/temporary/${DOWNLOAD_
 
 FROM python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 AS python-tooling-stage
 
-RUN pip install black isort
+RUN pip install black isort PyYAML
 
 ARG CODE_CHECKS_PYTHON=scripts/code_checks_python.sh
 RUN --mount=type=bind,source=${CODE_CHECKS_PYTHON},target=/temporary/${CODE_CHECKS_PYTHON} \
     --mount=type=bind,source=python_tooling/,target=/temporary/python_tooling/ \
     /temporary/${CODE_CHECKS_PYTHON}
+
+RUN --mount=type=bind,source=python_tooling/,target=/temporary/python_tooling/ \
+    python3 -m unittest discover --start-directory /temporary/python_tooling/ --verbose

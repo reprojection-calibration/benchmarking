@@ -2,5 +2,7 @@
 
 set -eoux pipefail
 
-black --check --verbose '/temporary/python_tooling'
+black --version
+
+black --check --diff --verbose '/temporary/python_tooling'
 isort --check '/temporary/python_tooling'

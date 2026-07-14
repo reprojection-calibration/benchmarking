@@ -37,12 +37,10 @@ class TestParseKalibr(TestCase):
 
     def test_load_camchain(self):
         temp_file = self.enterContext(NamedTemporaryFile(mode="w+", suffix=".yaml"))
-        temp_file.write(
-            """
+        temp_file.write("""
             foo:
               bar: 111
-            """
-        )
+            """)
         temp_file.flush()
 
         result = load_camchain(temp_file.name)
@@ -83,5 +81,3 @@ class TestParseKalibr(TestCase):
                 "source_file": "foo/bar-camchain.yaml",
             },
         )
-
-        print(result)
