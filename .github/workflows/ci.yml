@@ -117,9 +117,76 @@ jobs:
           docker compose --file compose.benchmark.yaml \
             run --no-deps --rm python-tooling
 
-      - name: Upload parsed kalibr results
+      - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-kalibr-result
           path: ${{ github.workspace }}/parsed_kalibr_result.csv
           if-no-files-found: error
+
+  deploy-results:
+    # WARN(Jack): This means this workflow will run during the pull request before anything has been merged to master!
+    # Updating the public official website with non-master merges is definitely not nice! We need to somehow have a PR
+    # preview version of the webpage that is different than the master merged version.
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: kalibr-pipeline
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Download parsed Kalibr results
+        uses: actions/download-artifact@v8
+        with:
+          name: parsed-kalibr-result
+          path: website
+      - name: Create results page
+        run: |
+          set -eou pipefail
+  
+          test -f website/parsed_kalibr_result.csv
+  
+          cat > website/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Kalibr Benchmark Results</title>
+            </head>
+            <body>
+              <main>
+                <h1>Kalibr Benchmark Results</h1>
+  
+                <p>
+                  Latest results generated from the main branch.
+                </p>
+  
+                <p>
+                  <a href="./parsed_kalibr_result.csv" download>
+                    Download parsed Kalibr results
+                  </a>
+                </p>
+              </main>
+            </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
