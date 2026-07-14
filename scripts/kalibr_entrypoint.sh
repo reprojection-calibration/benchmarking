@@ -46,5 +46,11 @@ while read bag_i; do
         mkdir --parents "/data/kalibr/${camera_name}"
         mv -- /data/*.pdf /data/*.txt /data/*.yaml "/data/kalibr/${camera_name}"
 
+        # REMOVE
+        # REMOVE
+        # REMOVE
+        # REMOVE
+        # REMOVE
+        exit 0
     done < <(jq ".cameras[]" "${dataset_specification_json}")
 done < <(jq ".bags[]" "${dataset_specification_json}")
