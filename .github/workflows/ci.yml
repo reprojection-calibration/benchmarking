@@ -152,26 +152,9 @@ jobs:
           
           test -f "website/parsed_kalibr_result.csv"
           
-          cat > "website/index.html" <<'EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Kalibr Benchmark Results</title>
-            </head>
-            <body>
-              <main>
-                <h1>Kalibr Benchmark Results</h1>         
-                <p>
-                  <a href="./parsed_kalibr_result.csv" download>
-                    Download parsed Kalibr results
-                  </a>
-                </p>
-              </main>
-            </body>
-          </html>
-          EOF
+          docker compose --file compose.benchmark.yaml \
+            run --no-deps --rm build-results-page
+
       - name: Upload result webpage
         uses: actions/upload-artifact@v7
         with:
