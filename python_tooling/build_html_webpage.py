@@ -70,6 +70,7 @@ def load_results(path, library):
         "bag",
         "sensor_name",
         "camera_model",
+        "source_file",
         *PARAMETERS.keys(),
     }
 
@@ -87,13 +88,8 @@ def load_results(path, library):
     # not contain calibration-library metadata.
     results["calibration_library"] = library
 
-    if "source_file" not in results.columns:
-        results["source_file"] = ""
-
     for parameter in PARAMETERS:
-        numeric_values = pd.to_numeric(results[parameter], errors="coerce")
-
-        results[parameter] = numeric_values
+        results[parameter] = pd.to_numeric(results[parameter], errors="coerce")
 
     return results
 
@@ -208,9 +204,10 @@ def make_figure(results):
                     legendgroup=str(library),
                     showlegend=row == 1,
                     marker={
-                        "size": 11,
+                        "size": 20,
                         "color": style["color"],
                         "symbol": style["symbol"],
+                        "opacity": 0.75,
                         "line": {
                             "color": "white",
                             "width": 1,
