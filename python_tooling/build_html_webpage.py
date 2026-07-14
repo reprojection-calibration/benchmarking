@@ -103,16 +103,19 @@ def load_all_results(result_inputs):
     return pd.concat(result_frames, ignore_index=True)
 
 
-def expanded_range(values):
+def expanded_range(values, minimum_width=0.0):
     minimum = float(values.min())
     maximum = float(values.max())
 
-    if minimum == maximum:
-        padding = max(abs(minimum) * 0.02, 0.01)
-    else:
-        padding = (maximum - minimum) * 0.08
+    data_width = maximum - minimum
+    range_width = max(data_width, minimum_width)
 
-    return minimum - padding, maximum + padding
+    padding = max(range_width * 0.08, 0.01)
+    center = (minimum + maximum) / 2.0
+
+    half_width = range_width / 2.0 + padding
+
+    return center - half_width, center + half_width
 
 
 def make_library_styles(libraries):
@@ -163,7 +166,8 @@ def make_figure(results):
     ]
 
     for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
-        x_min, x_max = expanded_range(results[parameter])
+        minimum_width = 10.0 if unit == "px" else 0.1
+        x_min, x_max = expanded_range(results[parameter], minimum_width)
 
         # Draw one horizontal number line for every sensor.
         for sensor, y_position in sensor_positions.items():
