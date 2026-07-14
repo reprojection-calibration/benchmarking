@@ -49,23 +49,23 @@ def parse_camchain(input):
     xi, alpha, fx, fy, cx, cy = intrinsics
     width, height = resolution
 
-    bag = path.name.removesuffix(CAMCHAIN_SUFFIX)
+    # NOTE(Jack): See the camera_model_map in config/business_logic.json for the list of acceptable camera model names
+    # and formatting.
+    camera_model = f"{camera["camera_model"]}-{camera["distortion_model"]}"
 
     # TODO COMBINE THE CAMERA MODEL AND DISTORTION MODEL INTO ONE
     # TODO AVERAGE THE FOCAL LENGTHS INTO ONE ELEMENT!
     return {
-        "bag": bag,
-        "sensor": sensor,
+        "bag": path.name.removesuffix(CAMCHAIN_SUFFIX),
         "sensor_directory": path.parent.name,
-        "topic": camera["rostopic"],
-        "camera_model": camera["camera_model"],
-        "distortion_model": camera["distortion_model"],
-        "xi": xi,
-        "alpha": alpha,
+        "sensor_name": camera["rostopic"],
+        "camera_model": camera_model,
         "fx": fx,
         "fy": fy,
         "cx": cx,
         "cy": cy,
+        "xi": xi,
+        "alpha": alpha,
         "width": width,
         "height": height,
         "source_file": str(path),

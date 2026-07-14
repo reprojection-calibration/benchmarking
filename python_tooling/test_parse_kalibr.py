@@ -59,25 +59,25 @@ class TestParseKalibr(TestCase):
 
         data = yaml.safe_load(yaml_text)
 
-        result = parse_camchain((data, "foo/bar.yaml"))
+        result = parse_camchain((data, f"foo/bar{CAMCHAIN_SUFFIX}"))
 
         self.assertEqual(
             result,
             {
-                "bag": "bar.yaml",
-                "sensor": "cam0",
+                "bag": "bar",
                 "sensor_directory": "foo",
-                "topic": "/cam0/image_raw",
-                "camera_model": "ds",
-                "distortion_model": "none",
-                "xi": 1,
-                "alpha": 2,
+                "sensor_name": "/cam0/image_raw",
+                "camera_model": "ds-none",
                 "fx": 3,
                 "fy": 4,
                 "cx": 5,
                 "cy": 6,
+                "xi": 1,
+                "alpha": 2,
                 "width": 512,
                 "height": 512,
-                "source_file": "foo/bar.yaml",
+                "source_file": "foo/bar-camchain.yaml",
             },
         )
+
+        print(result)
