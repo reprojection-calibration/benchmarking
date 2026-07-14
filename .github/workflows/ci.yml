@@ -151,8 +151,9 @@ jobs:
         run: |
           set -eou pipefail
           
-          test -f "parsed_kalibr_result.csv"
+          test -f "${GITHUB_WORKSPACE}/parsed_kalibr_result.csv"
           
+          # TODO(Jack): Should we pass the output directory here?
           docker compose --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
 
@@ -160,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: result-webpage
-          path: index.html
+          path: ${{ github.workspace }}/index.html
           if-no-files-found: error
 
   deploy-results-webpage:
@@ -178,17 +179,17 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
-      - name: Download parsed Kalibr results
+      - name: Download built webpage
         uses: actions/download-artifact@v8
         with:
           name: result-webpage
-          path: website
+          path: ${{ github.workspace }}/website
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website
+          path: ${{ github.workspace }}/website
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
