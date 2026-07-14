@@ -51,7 +51,7 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/html_plotting.py", "/temporary/output/index.html", "--results", "kalibr", "/temporary/output/parsed_kalibr_result.csv"]
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/output/index.html", "--results", "kalibr", "/temporary/output/parsed_kalibr_result.csv"]
     volumes:
       - ./:/temporary/output
 
