@@ -5,8 +5,12 @@ from unittest import TestCase
 
 import yaml
 
-from parse_kalibr import (CAMCHAIN_SUFFIX, collect_camchain_files,
-                          load_camchain, parse_camchain)
+from parse_kalibr import (
+    CAMCHAIN_SUFFIX,
+    collect_camchain_files,
+    load_camchain,
+    parse_camchain,
+)
 
 
 class TestParseKalibr(TestCase):
