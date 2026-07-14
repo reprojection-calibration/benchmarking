@@ -96,9 +96,8 @@ def load_results(path, library):
 
 def load_all_results(result_inputs):
     result_frames = []
-
     for library, csv_path in result_inputs:
-        result_frames.append(load_results(path=Path(csv_path), library=library))
+        result_frames.append(load_results(Path(csv_path), library))
 
     return pd.concat(result_frames, ignore_index=True)
 
@@ -302,8 +301,8 @@ def make_figure(results):
                 "text": "Calibration library",
             },
             "orientation": "h",
-            "x": 0.02,
-            "xanchor": "left",
+            "x": 1.0,
+            "xanchor": "right",
             "y": 1.025,
             "yanchor": "bottom",
             "itemsizing": "constant",
