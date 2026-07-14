@@ -30,9 +30,10 @@ def load_camchain(path):
     return data, path
 
 
-# WARN(Jack): Camera only!
+# WARN(Jack): Camera only and also hardcoded only for doublesphere!
 def parse_camchain(input):
     data, path = input
+    path = Path(path)
 
     sensor, camera = next(iter(data.items()))
 

@@ -3,6 +3,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from unittest import TestCase
 
+import yaml
+
 from parse_kalibr import (CAMCHAIN_SUFFIX, collect_camchain_files,
                           load_camchain, parse_camchain)
 
@@ -42,3 +44,40 @@ class TestParseKalibr(TestCase):
         result = load_camchain(temp_file.name)
 
         self.assertEqual(({"foo": {"bar": 111}}, Path(temp_file.name)), result)
+
+    def test_parse_camchain(self):
+        yaml_text = """
+            cam0:
+              cam_overlaps: []
+              camera_model: ds
+              distortion_coeffs: []
+              distortion_model: none
+              intrinsics: [1, 2, 3, 4, 5, 6]
+              resolution: [512, 512]
+              rostopic: /cam0/image_raw
+            """
+
+        data = yaml.safe_load(yaml_text)
+
+        result = parse_camchain((data, "foo/bar.yaml"))
+
+        self.assertEqual(
+            result,
+            {
+                "bag": "bar.yaml",
+                "sensor": "cam0",
+                "sensor_directory": "foo",
+                "topic": "/cam0/image_raw",
+                "camera_model": "ds",
+                "distortion_model": "none",
+                "xi": 1,
+                "alpha": 2,
+                "fx": 3,
+                "fy": 4,
+                "cx": 5,
+                "cy": 6,
+                "width": 512,
+                "height": 512,
+                "source_file": "foo/bar.yaml",
+            },
+        )
