@@ -283,47 +283,15 @@ def make_figure(results):
     )
 
     for annotation in figure.layout.annotations:
-        annotation.update(
-            x=0,
-            xanchor="left",
-            font={
-                "size": 16,
-                "color": "#334155",
-            },
-        )
+        annotation.update(x=0, xanchor="left", font={"size": 16, "color": "#334155"})
 
     return figure
 
 
 def write_figure(figure, output_html):
-    output_html.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    output_html.parent.mkdir(parents=True, exist_ok=True)
 
-    figure.write_html(
-        output_html,
-        full_html=True,
-        include_plotlyjs=True,
-        config={
-            "displaylogo": False,
-            "responsive": True,
-            "scrollZoom": False,
-            "modeBarButtonsToRemove": [
-                "lasso2d",
-                "select2d",
-                "zoom2d",
-                "pan2d",
-                "zoomIn2d",
-                "zoomOut2d",
-                "autoScale2d",
-            ],
-            "toImageButtonOptions": {
-                "format": "svg",
-                "filename": "double_sphere_intrinsics_number_lines",
-            },
-        },
-    )
+    figure.write_html(output_html, config={"displaylogo": False, "responsive": True, "scrollZoom": False})
 
 
 def main():
@@ -332,10 +300,7 @@ def main():
     results = load_all_results(arguments.results)
     figure = make_figure(results)
 
-    write_figure(
-        figure,
-        arguments.output_html,
-    )
+    write_figure(figure, arguments.output_html)
 
     print(f"Wrote report to {arguments.output_html}")
 
