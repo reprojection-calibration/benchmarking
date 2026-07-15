@@ -20,7 +20,7 @@ while read bag_i; do
         camera_name="${camera_name//\//_}"
 
         config_file="/mount/config/reprojection/${camera_name}_config.toml"
-        [[ -f "${config_file}" ]] || { echo "Error: camera configuraiton file does not exist: ${config_file}" >&2; exit 1; }
+        [[ -f "${config_file}" ]] || { echo "Error: camera configuration file does not exist: ${config_file}" >&2; exit 1; }
 
 
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
