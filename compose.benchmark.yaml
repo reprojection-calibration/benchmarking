@@ -26,9 +26,10 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: [ "python3", "/python_tooling/process_reprojection_dbs.py", "${BENCHMARKING_DATA_INPUT_DIR}/reprojection_dbs", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv" ]
+    entrypoint: [ "python3", "/python_tooling/process_reprojection_dbs.py", "${BENCHMARKING_DATA_INPUT_DIR}/reprojection_dbs", "/mount/config/reprojection/cache_keys.csv" ]
     volumes:
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
+      - ./config/reprojection/cache_keys.csv:/mount/config/reprojection/cache_keys.csv
 
   kalibr:
     build:
