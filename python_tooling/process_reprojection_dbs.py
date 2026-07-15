@@ -13,11 +13,10 @@ import pandas as pd
 REQUIRED_COLUMNS = {
     "dataset",
     "sensor_name",
+    "image_loading_key",
     "camera_info_key",
     "feature_extraction_key",
 }
-
-EMPTY_INPUT_CACHE_KEY = hashlib.sha256(b"").hexdigest()
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS entity
@@ -87,7 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "cache_keys_csv",
         type=Path,
-        help="CSV containing dataset, sensor_name, camera_info_key, and feature_extraction_key.",
+        help="CSV containing dataset, sensor_name, image_loading_key, camera_info_key, and feature_extraction_key.",
     )
     parser.add_argument(
         "--camera-model",
@@ -130,6 +129,7 @@ def load_cache_keys(csv_path: Path) -> pd.DataFrame:
         [
             "dataset",
             "sensor_name",
+            "image_loading_key",
             "camera_info_key",
             "feature_extraction_key",
         ]
@@ -157,7 +157,7 @@ def load_cache_keys(csv_path: Path) -> pd.DataFrame:
         values = ", ".join(f"({row.dataset}, {row.sensor_name})" for row in duplicate_rows.itertuples(index=False))
         raise ValueError("Duplicate dataset/sensor_name combinations in CSV: " + values)
 
-    for column in ("camera_info_key", "feature_extraction_key"):
+    for column in ("image_loading_key", "camera_info_key", "feature_extraction_key"):
         invalid = ~dataframe[column].str.fullmatch(r"[0-9a-fA-F]{64}")
         if invalid.any():
             row_index = dataframe.index[invalid][0]
@@ -186,6 +186,7 @@ def upsert_camera_cache_state(
     connection: sqlite3.Connection,
     *,
     sensor_name: str,
+    image_loading_key: str,
     camera_info_key: str,
     feature_extraction_key: str,
     camera_model: str,
@@ -203,7 +204,7 @@ def upsert_camera_cache_state(
     )
 
     for step_name, cache_key in (
-        ("image_loading", EMPTY_INPUT_CACHE_KEY),
+        ("image_loading", image_loading_key),
         ("camera_info", camera_info_key),
         ("feature_extraction", feature_extraction_key),
     ):
@@ -257,6 +258,7 @@ def process_database(
                 upsert_camera_cache_state(
                     connection,
                     sensor_name=row.sensor_name,
+                    image_loading_key=row.image_loading_key,
                     camera_info_key=row.camera_info_key,
                     feature_extraction_key=row.feature_extraction_key,
                     camera_model=camera_model,
