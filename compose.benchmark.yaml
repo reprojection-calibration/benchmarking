@@ -4,10 +4,7 @@ services:
       context: ./
       dockerfile: Dockerfile
       target: test-data-download-stage
-    # TODO CHECK FOR PREMATURE EXPANSION! $$
-    command: [ "/bin/bash", "-c", "set -eoux pipefail; cp --recursive /data/. ${BENCHMARKING_DATA_INPUT_DIR}/" ]
-    environment:
-      - BENCHMARKING_DATA_INPUT_DIR
+    entrypoint: [ "/bin/bash", "-c", "set -eoux pipefail; cp --recursive /data/. ${BENCHMARKING_DATA_INPUT_DIR}/" ]
     image: benchmarking:test-data-download-stage
     volumes:
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
@@ -29,8 +26,8 @@ services:
       # default so we need it to be read/write.
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
-      - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
       - ./config:/temporary/config:ro
+      - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
 
   python-tooling-image:
     build:
@@ -48,10 +45,9 @@ services:
     image: benchmarking:python-tooling-stage
     # NOTE(Jack): This line here is important because it writes the parsed output directly to the host and not a docker
     # volume! If this is a long term strategy I am not 100% sure.
-    entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "/data/kalibr", "/temporary/output/parsed_kalibr_result.csv"]
+    entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "${BENCHMARKING_RESULTS_DIR}/kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv"]
     volumes:
-      - benchmarking-data-input:/data
-      - ./:/temporary/output
+      - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
 
   build-results-page:
     depends_on:
@@ -60,9 +56,10 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/output/index.html", "--results", "kalibr", "/temporary/output/parsed_kalibr_result.csv"]
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv"]
     volumes:
-      - ./:/temporary/output
+      - ./:/temporary
+      - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
 
 volumes:
   benchmarking-data-input:
