@@ -30,7 +30,7 @@ while read bag_i; do
         camera_i=$(echo "${camera_i}" | jq -r ".")
 
         rosrun kalibr kalibr_calibrate_cameras \
-          --bag "/data/${bag_i}" \
+          --bag "${BENCHMARKING_DATA_INPUT_DIR}/${bag_i}" \
           --dont-show-report \
           --models ds-none \
           --target "${target_config}" \
@@ -43,8 +43,18 @@ while read bag_i; do
 
         # NOTE(Jack): Kalibr does not let us specify an output path or filename for the output diagnostics. Therefore
         # we need to manually move all the outputs into a batch specific (i.e. camera name and model) directory.
-        mkdir --parents "/data/kalibr/${camera_name}"
-        mv -- /data/*.pdf /data/*.txt /data/*.yaml "/data/kalibr/${camera_name}"
+        mkdir --parents "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
+        mv -- ${BENCHMARKING_DATA_INPUT_DIR}/*.pdf \
+              ${BENCHMARKING_DATA_INPUT_DIR}/*.txt \
+              ${BENCHMARKING_DATA_INPUT_DIR}/*.yaml \
+          "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
 
+
+        # REMOVE
+                # REMOVE
+                        # REMOVE
+                                # REMOVE
+                                        # REMOVE
+        exit 0
     done < <(jq ".cameras[]" "${dataset_specification_json}")
 done < <(jq ".bags[]" "${dataset_specification_json}")

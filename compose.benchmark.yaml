@@ -4,10 +4,13 @@ services:
       context: ./
       dockerfile: Dockerfile
       target: test-data-download-stage
-    command: [ "/bin/bash", "-c", "set -eou pipefail; cp --recursive /data/. /volume/mount/" ]
+    # TODO CHECK FOR PREMATURE EXPANSION! $$
+    command: [ "/bin/bash", "-c", "set -eoux pipefail; cp --recursive /data/. ${BENCHMARKING_DATA_INPUT_DIR}/" ]
+    environment:
+      - BENCHMARKING_DATA_INPUT_DIR
     image: benchmarking:test-data-download-stage
     volumes:
-      - benchmarking-data:/volume/mount
+      - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
 
   kalibr:
     build:
@@ -17,9 +20,15 @@ services:
       test-data:
         condition: service_completed_successfully
     entrypoint: /temporary/scripts/kalibr_entrypoint.sh
+    environment:
+      - BENCHMARKING_DATA_INPUT_DIR
+      - BENCHMARKING_RESULTS_DIR
     image: kalibr:latest
     volumes:
-      - benchmarking-data:/data
+      # NOTE(Jack): I would like to mount this volume as readonly but Kalibr writes the results to the data directory by
+      # default so we need it to be read/write.
+      - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
+      - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
       - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
       - ./config:/temporary/config:ro
 
@@ -41,7 +50,7 @@ services:
     # volume! If this is a long term strategy I am not 100% sure.
     entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "/data/kalibr", "/temporary/output/parsed_kalibr_result.csv"]
     volumes:
-      - benchmarking-data:/data
+      - benchmarking-data-input:/data
       - ./:/temporary/output
 
   build-results-page:
@@ -56,5 +65,7 @@ services:
       - ./:/temporary/output
 
 volumes:
-  benchmarking-data:
-    name: benchmarking-data
+  benchmarking-data-input:
+    name: benchmarking-data-input
+  benchmarking-results:
+    name: benchmarking-results
