@@ -1,3 +1,6 @@
 [submodule "thirdparty/kalibr"]
 	path = thirdparty/kalibr
 	url = https://github.com/ethz-asl/kalibr.git
+[submodule "thirdparty/reprojection"]
+	path = thirdparty/reprojection
+	url = https://github.com/reprojection-calibration/reprojection.git
