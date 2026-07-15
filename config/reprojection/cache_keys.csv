@@ -1,3 +1,9 @@
 dataset,sensor_name,camera_info_key,feature_extraction_key
+dataset-calib-imu1_512_16,/cam0/image_raw,
+dataset-calib-imu1_512_16,/cam1/image_raw,
+dataset-calib-imu2_512_16,/cam0/image_raw,
+dataset-calib-imu2_512_16,/cam1/image_raw,
+dataset-calib-imu3_512_16,/cam0/image_raw,
+dataset-calib-imu3_512_16,/cam1/image_raw,
 dataset-calib-imu4_512_16,/cam0/image_raw,85a0020544416364aebfaf4fcd702788757ee8986f530b044b979d5c5784075f,93b8cf85e879fffa22ef9acf33ad1d6c4d3f5577615f9c6461f806b849c03611
 dataset-calib-imu4_512_16,/cam1/image_raw,5d8d8ffacdd863772ff6dcfdf7951efe22d91e1c4430626aa193a4532f859dc7,dfe15547d07abd19c78fb45477b014e551d404046ee156cfcf1889a45cd5eb52
