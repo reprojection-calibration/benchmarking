@@ -23,18 +23,19 @@ services:
     depends_on:
       test-data:
         condition: service_completed_successfully
-    entrypoint: /temporary/scripts/kalibr_entrypoint.sh
+    entrypoint: /mount/scripts/kalibr_entrypoint.sh
     environment:
       - BENCHMARKING_DATA_INPUT_DIR
       - BENCHMARKING_RESULTS_DIR
+      - DATASET_SPECIFICATION_JSON
     image: kalibr:latest
     volumes:
       # NOTE(Jack): I would like to mount this volume as readonly but Kalibr writes the results to the data directory by
       # default so we need it to be read/write.
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
-      - ./config:/temporary/config:ro
-      - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
+      - ./config:/mount/config:ro
+      - ./scripts/kalibr_entrypoint.sh:/mount/scripts/kalibr_entrypoint.sh:ro
 
   reprojection:
     build:
@@ -43,7 +44,16 @@ services:
       context: thirdparty/reprojection/
       dockerfile: building/Dockerfile
       target: ros1-app-stage
+    depends_on:
+      test-data:
+        condition: service_completed_successfully
+    entrypoint: /mount/scripts/reprojection_entrypoint.sh
+    environment:
+      - DATASET_SPECIFICATION_JSON
     image: reprojection:ros1-app
+    volumes:
+      - ./config:/mount/config:ro
+      - ./scripts/reprojection_entrypoint.sh:/mount/scripts/reprojection_entrypoint.sh:ro
 
 
   parse-kalibr:

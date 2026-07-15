@@ -16,8 +16,6 @@ rm --force --recursive /var/lib/apt/lists/*
 
 # TODO(Jack): Hardcoding these paths here does not seem like an eloquent solution but it is quick, easy, and gets the
 # job done!
-dataset_specification_json="/temporary/config/dataset_specification.json"
-[[ -f "${dataset_specification_json}" ]] || { echo "Error: json dataset specification does not exist: ${dataset_specification_json}" >&2; exit 1; }
 target_config="/temporary/config/kalibr/april_6x6_80x80cm.yaml"
 [[ -f "${target_config}" ]] || { echo "Error: Kalibr target configuration does not exist: ${target_config}" >&2; exit 1; }
 
@@ -56,5 +54,5 @@ while read bag_i; do
                                 # REMOVE
                                         # REMOVE
         exit 0
-    done < <(jq ".cameras[]" "${dataset_specification_json}")
-done < <(jq ".bags[]" "${dataset_specification_json}")
+    done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
+done < <(jq ".bags[]" "${DATASET_SPECIFICATION_JSON}")
