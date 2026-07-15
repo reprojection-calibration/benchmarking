@@ -64,9 +64,11 @@ services:
         condition: service_completed_successfully
     entrypoint: /mount/scripts/reprojection_entrypoint.sh
     environment:
+      - BENCHMARKING_DATA_INPUT_DIR
       - DATASET_SPECIFICATION_JSON
     image: reprojection:ros1-app
     volumes:
+      - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
       - ./config:/mount/config:ro
       - ./scripts/reprojection_entrypoint.sh:/mount/scripts/reprojection_entrypoint.sh:ro
 
