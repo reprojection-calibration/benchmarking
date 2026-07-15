@@ -1,0 +1,10 @@
+[application]
+show_extraction = false
+
+[camera]
+sensor_name = "/cam0/image_raw"
+camera_model = "double_sphere"
+
+[target]
+pattern_size = [0,0]
+type = "checkerboard"
