@@ -9,6 +9,13 @@ services:
     volumes:
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
 
+  python-tooling-image:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: python-tooling-stage
+    image: benchmarking:python-tooling-stage
+
   kalibr:
     build:
       context: thirdparty/kalibr
@@ -28,13 +35,6 @@ services:
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
       - ./config:/temporary/config:ro
       - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
-
-  python-tooling-image:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-      target: python-tooling-stage
-    image: benchmarking:python-tooling-stage
 
   parse-kalibr:
     depends_on:
