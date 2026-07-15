@@ -2,6 +2,10 @@
 
 set -eoux pipefail
 
+set +u
+source /opt/ros/noetic/setup.bash
+set -u
+
 # TODO(Jack): Updating and installing each to time we run the script is not so clean but I don't want to go change
 # the kalibr image itself.
 apt-get update
@@ -19,8 +23,16 @@ while read bag_i; do
         camera_name="${camera_i#/}"
         camera_name="${camera_name//\//_}"
 
+
+        # Unlike Kalibr the sensor name is inside the config file which means we need to pick the right one.
         config_file="/mount/config/reprojection/${camera_name}_config.toml"
         [[ -f "${config_file}" ]] || { echo "Error: camera configuration file does not exist: ${config_file}" >&2; exit 1; }
+
+
+        /buildroot/reprojection-calibration-application \
+          --data "${BENCHMARKING_DATA_INPUT_DIR}/${bag_i}" \
+          --config ${config_file} \
+          --workspace "${BENCHMARKING_DATA_INPUT_DIR}/reprojection_dbs"
 
 
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
