@@ -1,13 +1,18 @@
 services:
-  test-data:
+  assemble-test-data:
     build:
       context: ./
       dockerfile: Dockerfile
       target: test-data-download-stage
-    entrypoint: [ "/bin/bash", "-c", "set -eoux pipefail; cp --recursive /data/. ${BENCHMARKING_DATA_INPUT_DIR}/" ]
+    entrypoint: [ "/bin/bash",
+                  "-c",
+                  "set -eoux pipefail;
+                   cp --recursive /data/. ${BENCHMARKING_DATA_INPUT_DIR}/;
+                   cp --recursive /mount/reprojection_dbs ${BENCHMARKING_DATA_INPUT_DIR}/" ]
     image: benchmarking:test-data-download-stage
     volumes:
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
+      - ./reprojection_dbs/:/mount/reprojection_dbs/:ro
 
   python-tooling-image:
     build:
@@ -16,12 +21,21 @@ services:
       target: python-tooling-stage
     image: benchmarking:python-tooling-stage
 
+  process-reprojection-dbs:
+    depends_on:
+      python-tooling-image:
+        condition: service_completed_successfully
+    image: benchmarking:python-tooling-stage
+    entrypoint: [ "python3", "/python_tooling/process_reprojection_dbs.py", "${BENCHMARKING_DATA_INPUT_DIR}/reprojection_dbs", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv" ]
+    volumes:
+      - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
+
   kalibr:
     build:
       context: thirdparty/kalibr
       dockerfile: Dockerfile_ros1_20_04
     depends_on:
-      test-data:
+      assemble-test-data:
         condition: service_completed_successfully
     entrypoint: /mount/scripts/kalibr_entrypoint.sh
     environment:
@@ -45,7 +59,7 @@ services:
       dockerfile: building/Dockerfile
       target: ros1-app-stage
     depends_on:
-      test-data:
+      assemble-test-data:
         condition: service_completed_successfully
     entrypoint: /mount/scripts/reprojection_entrypoint.sh
     environment:
@@ -54,7 +68,6 @@ services:
     volumes:
       - ./config:/mount/config:ro
       - ./scripts/reprojection_entrypoint.sh:/mount/scripts/reprojection_entrypoint.sh:ro
-
 
   parse-kalibr:
     depends_on:
