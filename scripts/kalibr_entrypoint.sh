@@ -16,7 +16,7 @@ rm --force --recursive /var/lib/apt/lists/*
 
 # TODO(Jack): Hardcoding these paths here does not seem like an eloquent solution but it is quick, easy, and gets the
 # job done!
-target_config="/temporary/config/kalibr/april_6x6_80x80cm.yaml"
+target_config="/mount/config/kalibr/april_6x6_80x80cm.yaml"
 [[ -f "${target_config}" ]] || { echo "Error: Kalibr target configuration does not exist: ${target_config}" >&2; exit 1; }
 
 # NOTE(Jack): Iteration logic adopted from https://stackoverflow.com/questions/68121082/how-to-iterate-over-json-array-with-jq
