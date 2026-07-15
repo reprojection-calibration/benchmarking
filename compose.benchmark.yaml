@@ -36,6 +36,16 @@ services:
       - ./config:/temporary/config:ro
       - ./scripts/kalibr_entrypoint.sh:/temporary/scripts/kalibr_entrypoint.sh:ro
 
+  reprojection:
+    build:
+      args:
+        BASE_IMAGE: "ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214"
+      context: thirdparty/reprojection/
+      dockerfile: building/Dockerfile
+      target: ros1-app-stage
+    image: reprojection:ros1-app
+
+
   parse-kalibr:
     depends_on:
       kalibr:
