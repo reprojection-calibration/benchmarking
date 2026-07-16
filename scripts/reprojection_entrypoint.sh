@@ -36,7 +36,15 @@ while read bag_i; do
           --config "${config_file}" \
           --workspace "${workspace}"
 
+                  # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!
+                # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!
+        break
+
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
+                      # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!
+                    # REMOVE REMOVE REMOVE!!!          # REMOVE REMOVE REMOVE!!!
+    break
+
 done < <(jq ".bags[]" "${DATASET_SPECIFICATION_JSON}")
 
 # Generate all the reports from the databases and then copy them over to th results directory/volume.
