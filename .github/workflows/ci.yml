@@ -107,7 +107,7 @@ jobs:
             --mount "type=bind,source=${host_dir},target=/mount/${mount_dir},readonly" \
             --rm \
             ubuntu:24.04 \
-              cp --debug --recursive ${host_dir}/. /volume/mount
+              cp --debug --recursive /mount/${mount_dir}/. /volume/mount
 
       - name: Run experiment
         run: |
