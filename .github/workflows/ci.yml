@@ -267,6 +267,8 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
 
+          ls -lah "${RUNNER_TEMP}"
+
       - name: Upload result webpage
         uses: actions/upload-artifact@v7
         with:
