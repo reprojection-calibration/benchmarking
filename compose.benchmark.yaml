@@ -108,9 +108,10 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv", "--results", "reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"]
+    # , "--results", "reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/mount/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv"]
     volumes:
-      - ./:/temporary
+      - ./:/mount
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
 
 volumes:

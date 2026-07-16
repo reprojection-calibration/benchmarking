@@ -130,7 +130,7 @@ jobs:
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
-          name: parsed-kalibr-result
+          name: parsed-kalibr-results
           path: ${{ runner.temp }}/parsed_kalibr_result.csv
           if-no-files-found: error
 
@@ -156,13 +156,19 @@ jobs:
       - name: Download parsed Kalibr results
         uses: actions/download-artifact@v8
         with:
-          name: parsed-kalibr-result
-          path: ${{ github.workspace }}
-      - name: Create result webpage
+          name: parsed-kalibr-results
+          path: ${{ runner.temp }}
+      - name: Create results webpage
         run: |
           set -eou pipefail
           
-          test -f "${GITHUB_WORKSPACE}/parsed_kalibr_result.csv"
+          docker run \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
+            --rm \
+            ubuntu:24.04 \
+              mkdir --parents /volume/mount/parsed; \
+              cp --debug --recursive /mount/parsed_kalibr_result.csv /volume/mount/parsed/parsed_kalibr_result.csv
           
           # TODO(Jack): Should we pass the output directory here?
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
@@ -172,7 +178,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: result-webpage
-          path: ${{ github.workspace }}/index.html
+          path: ${{ runner.temp }}/index.html
           if-no-files-found: error
 
   deploy-results-webpage:
@@ -194,13 +200,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: result-webpage
-          path: ${{ github.workspace }}/website
+          path: ${{ runner.temp }}/website
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ github.workspace }}/website
+          path: ${{ runner.temp }}/website
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
