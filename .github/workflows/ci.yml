@@ -56,7 +56,7 @@ jobs:
             benchmarking:test-data-download-stage \
               cp --archive --debug /data/. "/mount/${mount_dir}"
           
-          ls "/mount/${mount_dir}"
+          ls "${host_dir}"
 
   kalibr-pipeline:
     needs: test-data-download
