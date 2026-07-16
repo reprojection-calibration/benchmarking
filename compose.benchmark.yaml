@@ -84,9 +84,18 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    # NOTE(Jack): This line here is important because it writes the parsed output directly to the host and not a docker
-    # volume! If this is a long term strategy I am not 100% sure.
     entrypoint: ["python3", "/python_tooling/parse_kalibr.py", "${BENCHMARKING_RESULTS_DIR}/kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv"]
+    volumes:
+      - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
+
+  parse-reprojection:
+    depends_on:
+      reprojection:
+        condition: service_completed_successfully
+      python-tooling-image:
+        condition: service_completed_successfully
+    image: benchmarking:python-tooling-stage
+    entrypoint: ["python3", "/python_tooling/parse_reprojection.py", "${BENCHMARKING_RESULTS_DIR}/reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"]
     volumes:
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
 
@@ -94,10 +103,12 @@ services:
     depends_on:
       parse-kalibr:
         condition: service_completed_successfully
+      parse-reprojection:
+        condition: service_completed_successfully
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv"]
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/temporary/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv", "--results", "reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"]
     volumes:
       - ./:/temporary
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
