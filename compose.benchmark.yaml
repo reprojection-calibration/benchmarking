@@ -23,6 +23,8 @@ services:
 
   process-reprojection-dbs:
     depends_on:
+      assemble-test-data:
+        condition: service_completed_successfully
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
@@ -60,7 +62,7 @@ services:
       dockerfile: building/Dockerfile
       target: ros1-app-stage
     depends_on:
-      assemble-test-data:
+      process-reprojection-dbs:
         condition: service_completed_successfully
     entrypoint: /mount/scripts/reprojection_entrypoint.sh
     environment:
