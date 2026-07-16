@@ -144,6 +144,7 @@ jobs:
       - name: Build the Reprojection image
         uses: ./.github/actions/docker-build
         with:
+          build-args: BASE_IMAGE="ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214"
           cache_scope: reprojection-build
           context: thirdparty/reprojection
           file: thirdparty/reprojection/building/Dockerfile
