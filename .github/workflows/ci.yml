@@ -116,10 +116,10 @@ jobs:
           # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
           # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
           # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
-          docker compose --file compose.benchmark.yaml \
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm kalibr
           
-          docker compose --file compose.benchmark.yaml \
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
 
       - name: Upload parsed Kalibr results
