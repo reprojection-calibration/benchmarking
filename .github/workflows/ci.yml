@@ -22,9 +22,14 @@ jobs:
       - name: Restore test data cache
         id: test-data-cache
         uses: actions/cache@v6
+        # TODO(Jack): Can we also include a hash of the test data download docker image? I see a world where just
+        # hashing the script here could cause us problems one day. For example what if we changed the base image, or
+        # adding commands in the docker image after the download script it called?
+        # TODO(Jack): Should we just hash the entire dockerfile here? Yes that would cause false positives but
+        # eliminate the possibility of false negatives.
         with:
           path: ${{ runner.temp }}
-          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key12323123
       - name: Download TUM test data
         if: steps.test-data-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/docker-build
@@ -35,16 +40,24 @@ jobs:
           tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
       - name: Copy test data from Docker volume to host
+        if: steps.test-data-cache.outputs.cache-hit != 'true'
         run: |
-          set -eou pipefail
+          set -eoux pipefail
           
-          ls -a ${RUNNER_TEMP}
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
+          
+          mkdir --parents "${host_dir}"
+          
+          ls -a "${host_dir}"
   
           docker run \
-            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir}" \
             --rm \
             benchmarking:test-data-download-stage \
-              cp --archive /data/. /mount/
+              cp --archive /data/. "/mount/${mount_dir}"
+          
+          ls -a "${host_dir}"
 
   kalibr-pipeline:
     needs: test-data-download
