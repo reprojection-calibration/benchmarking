@@ -183,7 +183,7 @@ jobs:
             ubuntu:24.04 \
               cp --debug --recursive /mount/${mount_dir}/. /volume/mount
           
-          ls -lah "${GITHUB_WORKSPACE}/reprojection_dbs"
+          cat "${GITHUB_WORKSPACE}/reprojection_dbs/dataset-calib-imu1_512_16.calib.db3"
           docker run \
             --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
             --mount "type=bind,source=${GITHUB_WORKSPACE},target=/mount,readonly" \
@@ -194,12 +194,6 @@ jobs:
       - name: Run experiment
         run: |
           set -eoux pipefail
-          
-          docker run \
-            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount,readonly" \
-            --rm \
-            ubuntu:24.04 \
-              ls -lh /volume/mount; ls -lh /volume/mount/reprojection_dbs
           
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm process-reprojection-dbs
