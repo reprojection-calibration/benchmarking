@@ -48,11 +48,5 @@ while read bag_i; do
             "${BENCHMARKING_DATA_INPUT_DIR}"/*-camchain.yaml \
           "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
 
-        # REMOVE REMOVE REMOVE!!!
-                # REMOVE REMOVE REMOVE!!!
-                        # REMOVE REMOVE REMOVE!!!
-                                # REMOVE REMOVE REMOVE!!!
-        exit 0
-
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
 done < <(jq ".bags[]" "${DATASET_SPECIFICATION_JSON}")
