@@ -250,8 +250,6 @@ jobs:
         run: |
           set -eoux pipefail
           
-          ls -lah "${RUNNER_TEMP}"
-          
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
@@ -263,17 +261,16 @@ jobs:
                 cp --debug /mount/parsed_reprojection_result.csv /volume/mount/parsed/
               '
           
-          # TODO(Jack): Should we pass the output directory here?
+          # TODO(Jack): Should we pass the output directory here? Then we could upload it from the runner temp dir
+          # instead of the github workspace.
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
-
-          ls -lah "${RUNNER_TEMP}"
 
       - name: Upload result webpage
         uses: actions/upload-artifact@v7
         with:
           name: result-webpage
-          path: ${{ runner.temp }}/index.html
+          path: ${{ github.workspace }}/index.html
           if-no-files-found: error
 
   deploy-results-webpage:
