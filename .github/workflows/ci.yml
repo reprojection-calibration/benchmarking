@@ -149,7 +149,7 @@ jobs:
           file: thirdparty/reprojection/building/Dockerfile
           load: true
           tag: reprojection:ros1-app
-          target: test-data-download-stage
+          target: ros1-app-stage
       - name: Build the python tooling image
         uses: ./.github/actions/docker-build
         with:
@@ -201,7 +201,7 @@ jobs:
             ubuntu:24.04 \
               cp --debug /volume/mount/parsed/parsed_reprojection_result.csv /mount/
 
-      - name: Upload parsed Eeprojection results
+      - name: Upload parsed Reprojection results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-reprojection-results
