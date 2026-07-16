@@ -134,12 +134,86 @@ jobs:
           path: ${{ runner.temp }}/parsed_kalibr_result.csv
           if-no-files-found: error
 
+  reprojection-pipeline:
+    needs: test-data-download
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build the Reprojection image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: reprojection-build
+          context: thirdparty/reprojection
+          file: building/Dockerfile
+          load: true
+          tag: reprojection:ros1-app
+          target: test-data-download-stage
+      - name: Build the python tooling image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: python-tooling
+          context: .
+          load: true
+          tag: benchmarking:python-tooling-stage
+          target: python-tooling-stage
+      - name: Restore test data cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/test_data
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
+          fail-on-cache-miss: true
+      - name: Load test data into docker volume
+        run: |
+          set -eou pipefail
+
+          docker volume create benchmarking-data-input
+          
+          # TODO(Jack): Can we not define these as environmental variables?
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
+
+          docker run \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir},readonly" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug --recursive /mount/${mount_dir}/. /volume/mount
+
+      - name: Run experiment
+        run: |
+          set -eou pipefail
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm process-reprojection-dbs
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm reprojection
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm parse-reprojection
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug /volume/mount/parsed/parsed_reprojection_result.csv /mount/
+
+      - name: Upload parsed Eeprojection results
+        uses: actions/upload-artifact@v7
+        with:
+          name: parsed-reprojection-results
+          path: ${{ runner.temp }}/parsed_reprojection_result.csv
+          if-no-files-found: error
+
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
   # want to deploy it or not. If we had a nice way to deploy on non-main branches that would be great, but it does not
   # exist. By building the webpage here we at least give the user the opportunity to download the website folder and run
   # it locally before merging to master - not even close to perfect, but better than nothing!
   build-results-webpage:
-    needs: kalibr-pipeline
+    needs: [kalibr-pipeline, reprojection-pipeline]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -158,9 +232,14 @@ jobs:
         with:
           name: parsed-kalibr-results
           path: ${{ runner.temp }}
+      - name: Download parsed Reprojection results
+        uses: actions/download-artifact@v8
+        with:
+          name: parsed-reprojection-results
+          path: ${{ runner.temp }}
       - name: Create results webpage
         run: |
-          set -eou pipefail
+          set -eoux pipefail
           
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
@@ -168,7 +247,8 @@ jobs:
             --rm \
             ubuntu:24.04 \
               mkdir --parents /volume/mount/parsed; \
-              cp --debug --recursive /mount/parsed_kalibr_result.csv /volume/mount/parsed/parsed_kalibr_result.csv
+              cp --debug --recursive /mount/parsed_kalibr_result.csv /volume/mount/parsed/parsed_kalibr_result.csv; \
+              cp --debug --recursive /mount/parsed_reprojection_result.csv /volume/mount/parsed/parsed_reprojection_result.csv
           
           # TODO(Jack): Should we pass the output directory here?
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
