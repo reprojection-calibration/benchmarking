@@ -93,8 +93,6 @@ jobs:
       - name: Load test data into docker volume
         run: |
           set -eou pipefail
-          
-          ls -la "${RUNNER_TEMP}/test_data"
 
           docker volume create benchmarking-data-input
           
@@ -112,6 +110,12 @@ jobs:
       - name: Run experiment
         run: |
           set -eou pipefail
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --rm \
+            ubuntu:24.04 \
+              ls /volume/mount
           
           # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
           # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
