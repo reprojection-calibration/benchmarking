@@ -122,15 +122,16 @@ jobs:
           
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
             --rm \
             ubuntu:24.04 \
-              ls /volume/mount
+              cp --debug /volume/mount/parsed/parsed_kalibr_result.csv /mount/
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-kalibr-result
-          path: ${{ github.workspace }}/parsed_kalibr_result.csv
+          path: ${{ runner.temp }}/parsed_kalibr_result.csv
           if-no-files-found: error
 
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
