@@ -183,13 +183,13 @@ jobs:
             ubuntu:24.04 \
               cp --debug --recursive /mount/${mount_dir}/. /volume/mount
           
-          
+          ls -lah "${GITHUB_WORKSPACE}/reprojection_dbs"
           docker run \
             --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
-            --mount "type=bind,source=${GITHUB_WORKSPACE},target=/mount/,readonly" \
+            --mount "type=bind,source=${GITHUB_WORKSPACE},target=/mount,readonly" \
             --rm \
             ubuntu:24.04 \
-              cp --debug --recursive /mount/reprojection_dbs /volume/mount
+              cp --debug --recursive /mount/reprojection_dbs /volume/mount/
 
       - name: Run experiment
         run: |
