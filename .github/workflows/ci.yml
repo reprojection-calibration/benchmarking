@@ -18,7 +18,7 @@ jobs:
   test-data-download:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Test data cache
         id: test-data-cache
         uses: actions/cache@v6
@@ -61,7 +61,7 @@ jobs:
     needs: test-data-download
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build the Kalibr image
@@ -138,7 +138,7 @@ jobs:
     needs: test-data-download
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           lfs: true
@@ -245,7 +245,7 @@ jobs:
     needs: [kalibr-pipeline, reprojection-pipeline]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
       # TODO(Jack): Does the cache get shared across jobs? I think it does, regardless we need a more official way...
       - name: Build the python tooling image
