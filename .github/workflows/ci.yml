@@ -19,7 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Restore test data cache
+        id: test-data-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
       - name: Download TUM test data
+        if: steps.test-data-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/docker-build
         with:
           cache_scope: test-data-download
@@ -30,6 +37,8 @@ jobs:
       - name: Copy test data from Docker volume to host
         run: |
           set -eou pipefail
+          
+          ls -a ${RUNNER_TEMP}
   
           docker run \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
@@ -37,15 +46,8 @@ jobs:
             benchmarking:test-data-download-stage \
               cp --archive /data/. /mount/
 
-      - name: Upload test data as gha artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-data-artifact
-          path: ${{ runner.temp }}/benchmarking-data.tar
-          if-no-files-found: error
-
   kalibr-pipeline:
-    needs: test-data
+    needs: test-data-download
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
