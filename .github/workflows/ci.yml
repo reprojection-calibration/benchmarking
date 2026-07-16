@@ -146,7 +146,7 @@ jobs:
         with:
           cache_scope: reprojection-build
           context: thirdparty/reprojection
-          file: thridpart/reprojection/building/Dockerfile
+          file: thirdparty/reprojection/building/Dockerfile
           load: true
           tag: reprojection:ros1-app
           target: test-data-download-stage
