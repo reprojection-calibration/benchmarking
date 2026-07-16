@@ -15,7 +15,7 @@ jobs:
   # TODO(Jack): We should think about using gha "cache" as possible way to speed up the data handling here. It is just
   # not needed to uploaded the artifact everytime and download it again. If we can just upload it once and store it in
   # the cache that would make a lot of sense.
-  test-data:
+  test-data-download:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -27,31 +27,21 @@ jobs:
           load: true
           tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
-      - name: Pack the test data into a zip file
+      - name: Copy test data from Docker volume to host
         run: |
           set -eou pipefail
-          
-          mkdir --parents "${RUNNER_TEMP}/artifacts"
-          
-          # NOTE(Jack): We actually do not apply any compression here because using --gzip was taking a long time. Is 
-          # this ok? I think the upload-artifact action should itself do compression. Does it really matter?
+  
           docker run \
-            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
-            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             benchmarking:test-data-download-stage \
-              tar \
-                --create \
-                --directory=/data \
-                --file=/artifacts/benchmarking-data.tar \
-                --verbose \
-                .
+              cp --archive /data/. /mount/
 
-      - name: Upload zipped test data
+      - name: Upload test data as gha artifact
         uses: actions/upload-artifact@v7
         with:
-          name: benchmarking-data-zip
-          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar
+          name: test-data-artifact
+          path: ${{ runner.temp }}/benchmarking-data.tar
           if-no-files-found: error
 
   kalibr-pipeline:
