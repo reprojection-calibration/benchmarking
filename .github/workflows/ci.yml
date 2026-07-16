@@ -29,7 +29,8 @@ jobs:
         # eliminate the possibility of false negatives.
         with:
           path: ${{ runner.temp }}
-          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key12323123
+
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
       - name: Download TUM test data
         if: steps.test-data-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/docker-build
@@ -48,16 +49,14 @@ jobs:
           host_dir="${RUNNER_TEMP}/${mount_dir}"
           
           mkdir --parents "${host_dir}"
-          
-          ls -a "${host_dir}"
-  
+ 
           docker run \
             --mount "type=bind,source=${host_dir},target=/mount/${mount_dir}" \
             --rm \
             benchmarking:test-data-download-stage \
-              cp --archive /data/. "/mount/${mount_dir}"
+              cp --archive --debug /data/. "/mount/${mount_dir}"
           
-          ls -a "${host_dir}"
+          ls "/mount/${mount_dir}"
 
   kalibr-pipeline:
     needs: test-data-download
