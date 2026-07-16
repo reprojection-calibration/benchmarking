@@ -142,8 +142,25 @@ jobs:
         with:
           submodules: recursive
           lfs: true
-      - name: Pull LFS objects
-        run: git lfs pull
+      - name: Diagnose Git LFS database
+        run: |
+          db="reprojection_dbs/dataset-calib-imu1_512_16.calib.db3"
+          
+          echo "Git LFS version:"
+          git lfs version
+          
+          echo "Configured attributes:"
+          git check-attr --all -- "${db}"
+          
+          echo "LFS-tracked files:"
+          git lfs ls-files --long
+          
+          echo "Pointer stored in Git:"
+          git show "HEAD:${db}"
+          
+          echo "Working-tree file:"
+          ls -lh "${db}"
+          file "${db}"
       - name: Build the Reprojection image
         uses: ./.github/actions/docker-build
         with:
