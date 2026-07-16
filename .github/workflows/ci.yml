@@ -93,6 +93,8 @@ jobs:
       - name: Load test data into docker volume
         run: |
           set -eou pipefail
+          
+          ls -la "${RUNNER_TEMP}/test_data"
 
           docker volume create benchmarking-data-input
           
