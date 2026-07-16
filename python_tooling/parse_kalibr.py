@@ -50,8 +50,6 @@ def parse_camchain(input):
     # and formatting.
     camera_model = f"{camera['camera_model']}-{camera['distortion_model']}"
 
-    # TODO COMBINE THE CAMERA MODEL AND DISTORTION MODEL INTO ONE
-    # TODO AVERAGE THE FOCAL LENGTHS INTO ONE ELEMENT!
     return {
         "bag": path.name.removesuffix(CAMCHAIN_SUFFIX),
         "sensor_directory": path.parent.name,

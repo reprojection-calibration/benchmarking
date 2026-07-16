@@ -7,3 +7,4 @@ When cloning the repository make sure to get the submodules:
 Or after you already cloned it but forget the submodules:
 
         git submodule update --init --recursive
+

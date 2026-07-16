@@ -15,11 +15,23 @@ jobs:
   # TODO(Jack): We should think about using gha "cache" as possible way to speed up the data handling here. It is just
   # not needed to uploaded the artifact everytime and download it again. If we can just upload it once and store it in
   # the cache that would make a lot of sense.
-  test-data:
+  test-data-download:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+      - name: Test data cache
+        id: test-data-cache
+        uses: actions/cache@v6
+        # TODO(Jack): Can we also include a hash of the test data download docker image? I see a world where just
+        # hashing the script here could cause us problems one day. For example what if we changed the base image, or
+        # adding commands in the docker image after the download script it called?
+        # TODO(Jack): Should we just hash the entire dockerfile here? Yes that would cause false positives but
+        # eliminate the possibility of false negatives.
+        with:
+          path: ${{ runner.temp }}/test_data
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
       - name: Download TUM test data
+        if: steps.test-data-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/docker-build
         with:
           cache_scope: test-data-download
@@ -27,38 +39,29 @@ jobs:
           load: true
           tag: benchmarking:test-data-download-stage
           target: test-data-download-stage
-      - name: Pack the test data into a zip file
+      - name: Copy test data from Docker volume to host
+        if: steps.test-data-cache.outputs.cache-hit != 'true'
         run: |
-          set -eou pipefail
+          set -eoux pipefail
           
-          mkdir --parents "${RUNNER_TEMP}/artifacts"
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
           
-          # NOTE(Jack): We actually do not apply any compression here because using --gzip was taking a long time. Is 
-          # this ok? I think the upload-artifact action should itself do compression. Does it really matter?
+          mkdir --parents "${host_dir}"
+ 
           docker run \
-            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts" \
-            --mount "type=volume,source=benchmarking-data,target=/data,readonly" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir}" \
             --rm \
             benchmarking:test-data-download-stage \
-              tar \
-                --create \
-                --directory=/data \
-                --file=/artifacts/benchmarking-data.tar \
-                --verbose \
-                .
-
-      - name: Upload zipped test data
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmarking-data-zip
-          path: ${{ runner.temp }}/artifacts/benchmarking-data.tar
-          if-no-files-found: error
+              cp --debug --recursive /data/. "/mount/${mount_dir}"
+          
+          ls "${host_dir}"
 
   kalibr-pipeline:
-    needs: test-data
+    needs: test-data-download
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build the Kalibr image
@@ -79,29 +82,30 @@ jobs:
           load: true
           tag: benchmarking:python-tooling-stage
           target: python-tooling-stage
-      - name: Download test data
-        uses: actions/download-artifact@v8
+      - name: Restore test data cache
+        uses: actions/cache/restore@v6
         with:
-          name: benchmarking-data-zip
-          path: ${{ runner.temp }}/artifacts
+          path: ${{ runner.temp }}/test_data
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
+          fail-on-cache-miss: true
       # TODO(Jack): We will likely have this exact same step in the reprojection pipeline, should we make this into a
       # reusable action code block then?
       - name: Load test data into docker volume
         run: |
           set -eou pipefail
 
-          docker volume create benchmarking-data
+          docker volume create benchmarking-data-input
+          
+          # TODO(Jack): Can we not define these as environmental variables?
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
 
           docker run \
-            --mount "type=volume,source=benchmarking-data,target=/data" \
-            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts,readonly" \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir},readonly" \
             --rm \
             ubuntu:24.04 \
-              tar \
-                --directory=/data \
-                --extract \
-                --file=/artifacts/benchmarking-data.tar \
-                --verbose
+              cp --debug --recursive /mount/${mount_dir}/. /volume/mount
 
       - name: Run experiment
         run: |
@@ -110,17 +114,107 @@ jobs:
           # NOTE(Jack): We do not need to build anything here or run the test data portion of the compose file because 
           # both test data and kalibr build stages are built and cached in the pipeline before. We split this up in the 
           # gha CI because if we just ran it all here we would not be able to cache anything using the gha tooling. 
-          docker compose --file compose.benchmark.yaml \
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm kalibr
           
-          docker compose --file compose.benchmark.yaml \
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug /volume/mount/parsed/parsed_kalibr_result.csv /mount/
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
-          name: parsed-kalibr-result
-          path: ${{ github.workspace }}/parsed_kalibr_result.csv
+          name: parsed-kalibr-results
+          path: ${{ runner.temp }}/parsed_kalibr_result.csv
+          if-no-files-found: error
+
+  reprojection-pipeline:
+    needs: test-data-download
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          lfs: true
+      - name: Build the Reprojection image
+        uses: ./.github/actions/docker-build
+        with:
+          build-args: BASE_IMAGE=ubuntu:20.04@sha256:8feb4d8ca5354def3d8fce243717141ce31e2c428701f6682bd2fafe15388214
+          cache_scope: reprojection-build
+          context: thirdparty/reprojection
+          file: thirdparty/reprojection/building/Dockerfile
+          load: true
+          tag: reprojection:ros1-app
+          target: ros1-app-stage
+      - name: Build the python tooling image
+        uses: ./.github/actions/docker-build
+        with:
+          cache_scope: python-tooling
+          context: .
+          load: true
+          tag: benchmarking:python-tooling-stage
+          target: python-tooling-stage
+      - name: Restore test data cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/test_data
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
+          fail-on-cache-miss: true
+      - name: Load test data into docker volume
+        run: |
+          set -eou pipefail
+
+          docker volume create benchmarking-data-input
+          
+          # TODO(Jack): Can we not define these as environmental variables?
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
+
+          docker run \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir},readonly" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug --recursive /mount/${mount_dir}/. /volume/mount
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --mount "type=bind,source=${GITHUB_WORKSPACE},target=/mount,readonly" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug --recursive /mount/reprojection_dbs /volume/mount/
+
+      - name: Run experiment
+        run: |
+          set -eoux pipefail
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm process-reprojection-dbs
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm reprojection
+          
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
+            run --no-deps --rm parse-reprojection
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
+            --rm \
+            ubuntu:24.04 \
+              cp --debug /volume/mount/parsed/parsed_reprojection_result.csv /mount/
+
+      - name: Upload parsed Reprojection results
+        uses: actions/upload-artifact@v7
+        with:
+          name: parsed-reprojection-results
+          path: ${{ runner.temp }}/parsed_reprojection_result.csv
           if-no-files-found: error
 
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
@@ -128,10 +222,10 @@ jobs:
   # exist. By building the webpage here we at least give the user the opportunity to download the website folder and run
   # it locally before merging to master - not even close to perfect, but better than nothing!
   build-results-webpage:
-    needs: kalibr-pipeline
+    needs: [kalibr-pipeline, reprojection-pipeline]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       # TODO(Jack): This is copy and pasted from the kalibr stage! Is there not a better way to do this?
       # TODO(Jack): Does the cache get shared across jobs? I think it does, regardless we need a more official way...
       - name: Build the python tooling image
@@ -145,16 +239,31 @@ jobs:
       - name: Download parsed Kalibr results
         uses: actions/download-artifact@v8
         with:
-          name: parsed-kalibr-result
-          path: ${{ github.workspace }}
-      - name: Create result webpage
+          name: parsed-kalibr-results
+          path: ${{ runner.temp }}
+      - name: Download parsed Reprojection results
+        uses: actions/download-artifact@v8
+        with:
+          name: parsed-reprojection-results
+          path: ${{ runner.temp }}
+      - name: Create results webpage
         run: |
-          set -eou pipefail
+          set -eoux pipefail
           
-          test -f "${GITHUB_WORKSPACE}/parsed_kalibr_result.csv"
+          docker run \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
+            --rm \
+            ubuntu:24.04 \
+              sh -c '
+                mkdir --parents /volume/mount/parsed
+                cp --debug /mount/parsed_kalibr_result.csv /volume/mount/parsed/
+                cp --debug /mount/parsed_reprojection_result.csv /volume/mount/parsed/
+              '
           
-          # TODO(Jack): Should we pass the output directory here?
-          docker compose --file compose.benchmark.yaml \
+          # TODO(Jack): Should we pass the output directory here? Then we could upload it from the runner temp dir
+          # instead of the github workspace.
+          docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
 
       - name: Upload result webpage
@@ -183,13 +292,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: result-webpage
-          path: ${{ github.workspace }}/website
+          path: ${{ runner.temp }}/website
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ github.workspace }}/website
+          path: ${{ runner.temp }}/website
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

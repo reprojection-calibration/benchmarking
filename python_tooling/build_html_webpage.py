@@ -143,7 +143,7 @@ def make_figure(results):
     ]
 
     for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
-        minimum_width = 10.0 if unit == "px" else 0.1
+        minimum_width = 20.0 if unit == "px" else 0.2
         x_min, x_max = expanded_range(results[parameter], minimum_width)
 
         # Draw one horizontal number line for every sensor.
