@@ -121,8 +121,8 @@ jobs:
             run --no-deps --rm parse-kalibr
           
           docker run \
-            --mount "type=volume,source=benchmarking-results,target=/volume/mount" \
-            --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
+            --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
+            --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
               cp --debug /volume/mount/parsed/parsed_kalibr_result.csv /mount/
