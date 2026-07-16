@@ -183,7 +183,6 @@ jobs:
             ubuntu:24.04 \
               cp --debug --recursive /mount/${mount_dir}/. /volume/mount
           
-          cat "${GITHUB_WORKSPACE}/reprojection_dbs/dataset-calib-imu1_512_16.calib.db3"
           docker run \
             --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
             --mount "type=bind,source=${GITHUB_WORKSPACE},target=/mount,readonly" \
