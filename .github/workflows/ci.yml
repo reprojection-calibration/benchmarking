@@ -142,6 +142,8 @@ jobs:
         with:
           submodules: recursive
           lfs: true
+      - name: Pull LFS objects
+        run: git lfs pull
       - name: Build the Reprojection image
         uses: ./.github/actions/docker-build
         with:
