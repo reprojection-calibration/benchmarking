@@ -193,7 +193,13 @@ jobs:
 
       - name: Run experiment
         run: |
-          set -eou pipefail
+          set -eoux pipefail
+          
+          docker run \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount,readonly" \
+            --rm \
+            ubuntu:24.04 \
+              ls -lh /volume/mount; ls -lh /volume/mount/reprojection_dbs
           
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm process-reprojection-dbs
