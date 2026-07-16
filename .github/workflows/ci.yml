@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Restore test data cache
+      - name: Test data cache
         id: test-data-cache
         uses: actions/cache@v6
         # TODO(Jack): Can we also include a hash of the test data download docker image? I see a world where just
@@ -28,8 +28,7 @@ jobs:
         # TODO(Jack): Should we just hash the entire dockerfile here? Yes that would cause false positives but
         # eliminate the possibility of false negatives.
         with:
-          path: ${{ runner.temp }}
-
+          path: ${{ runner.temp }}/test_data
           key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
       - name: Download TUM test data
         if: steps.test-data-cache.outputs.cache-hit != 'true'
@@ -54,7 +53,7 @@ jobs:
             --mount "type=bind,source=${host_dir},target=/mount/${mount_dir}" \
             --rm \
             benchmarking:test-data-download-stage \
-              cp --archive --debug /data/. "/mount/${mount_dir}"
+              cp --debug --recursive /data/. "/mount/${mount_dir}"
           
           ls "${host_dir}"
 
@@ -83,29 +82,30 @@ jobs:
           load: true
           tag: benchmarking:python-tooling-stage
           target: python-tooling-stage
-      - name: Download test data
-        uses: actions/download-artifact@v8
+      - name: Restore test data cache
+        uses: actions/cache/restore@v6
         with:
-          name: benchmarking-data-zip
-          path: ${{ runner.temp }}/artifacts
+          path: ${{ runner.temp }}/test_data
+          key: test-data-${{ hashFiles('scripts/download_test_data.sh') }}-cache-key
+          fail-on-cache-miss: true
       # TODO(Jack): We will likely have this exact same step in the reprojection pipeline, should we make this into a
       # reusable action code block then?
       - name: Load test data into docker volume
         run: |
           set -eou pipefail
 
-          docker volume create benchmarking-data
+          docker volume create benchmarking-data-input
+          
+          # TODO(Jack): Can we not define these as environmental variables?
+          mount_dir="test_data"
+          host_dir="${RUNNER_TEMP}/${mount_dir}"
 
           docker run \
-            --mount "type=volume,source=benchmarking-data,target=/data" \
-            --mount "type=bind,source=${RUNNER_TEMP}/artifacts,target=/artifacts,readonly" \
+            --mount "type=volume,source=benchmarking-data-input,target=/volume/mount" \
+            --mount "type=bind,source=${host_dir},target=/mount/${mount_dir},readonly" \
             --rm \
             ubuntu:24.04 \
-              tar \
-                --directory=/data \
-                --extract \
-                --file=/artifacts/benchmarking-data.tar \
-                --verbose
+              cp --debug --recursive ${host_dir}/. /volume/mount
 
       - name: Run experiment
         run: |
