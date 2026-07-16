@@ -42,17 +42,11 @@ while read bag_i; do
         # NOTE(Jack): Kalibr does not let us specify an output path or filename for the output diagnostics. Therefore
         # we need to manually move all the outputs into a batch specific (i.e. camera name and model) directory.
         mkdir --parents "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
-        mv -- ${BENCHMARKING_DATA_INPUT_DIR}/*.pdf \
-              ${BENCHMARKING_DATA_INPUT_DIR}/*.txt \
-              ${BENCHMARKING_DATA_INPUT_DIR}/*.yaml \
+        mv --verbose -- \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-report-cam.pdf \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-results-cam.txt \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-camchain.yaml \
           "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
 
-
-        # REMOVE
-                # REMOVE
-                        # REMOVE
-                                # REMOVE
-                                        # REMOVE
-        exit 0
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
 done < <(jq ".bags[]" "${DATASET_SPECIFICATION_JSON}")

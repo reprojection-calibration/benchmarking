@@ -65,10 +65,13 @@ services:
     entrypoint: /mount/scripts/reprojection_entrypoint.sh
     environment:
       - BENCHMARKING_DATA_INPUT_DIR
+      - BENCHMARKING_RESULTS_DIR
       - DATASET_SPECIFICATION_JSON
     image: reprojection:ros1-app
     volumes:
+      # NOTE(Jack): We edit the databases so this cannot be a readonly mount
       - benchmarking-data-input:${BENCHMARKING_DATA_INPUT_DIR}
+      - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
       - ./config:/mount/config:ro
       - ./scripts/reprojection_entrypoint.sh:/mount/scripts/reprojection_entrypoint.sh:ro
 
