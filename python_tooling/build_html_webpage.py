@@ -291,7 +291,10 @@ def make_figure(results):
 def write_figure(figure, output_html):
     output_html.parent.mkdir(parents=True, exist_ok=True)
 
-    figure.write_html(output_html, config={"displaylogo": False, "responsive": True, "scrollZoom": False})
+    figure.write_html(
+        output_html,
+        config={"displaylogo": False, "responsive": True, "scrollZoom": False},
+    )
 
 
 def main():
