@@ -41,7 +41,10 @@ def parse_camchain(input):
     resolution = camera["resolution"]
 
     if len(intrinsics) != 6:
-        raise ValueError(f"Expected 6 double-sphere intrinsics in {path}, " f"but found {len(intrinsics)}")
+        raise ValueError(
+            f"Expected 6 double-sphere intrinsics in {path}, "
+            f"but found {len(intrinsics)}"
+        )
 
     xi, alpha, fx, fy, cx, cy = intrinsics
     width, height = resolution
@@ -68,7 +71,9 @@ def parse_camchain(input):
 
 
 def arg_parser():
-    parser = argparse.ArgumentParser(description="Extract Kalibr camera intrinsics from camchain YAML files.")
+    parser = argparse.ArgumentParser(
+        description="Extract Kalibr camera intrinsics from camchain YAML files."
+    )
     parser.add_argument(
         "kalibr_directory",
         type=Path,
