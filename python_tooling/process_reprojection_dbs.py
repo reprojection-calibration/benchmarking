@@ -95,7 +95,7 @@ def update_database(db_path, rows):
                     PRIMARY KEY (step_id, asset_id)
                 );
                 """,
-                ()
+                (),
             )
 
             db.execute(
