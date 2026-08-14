@@ -1,8 +1,11 @@
 import argparse
 from pathlib import Path
 
+import dominate
 import pandas as pd
 import plotly.graph_objects as go
+from dominate.tags import body, button, div, head, meta, script, style, title
+from dominate.util import raw
 from plotly.subplots import make_subplots
 
 PARAMETERS = {
@@ -111,7 +114,7 @@ def expanded_range(values, minimum_width=0.0):
     return center - half_width, center + half_width
 
 
-def make_figure(results):
+def make_figure(results, title):
     sensors = list(results["sensor_name"].drop_duplicates())
     libraries = list(results["calibration_library"].drop_duplicates())
 
@@ -142,7 +145,7 @@ def make_figure(results):
         "camera_model",
     ]
 
-    for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
+    for row, (parameter, (parameter_title, unit)) in enumerate(PARAMETERS.items(), start=1):
         minimum_width = 20.0 if unit == "px" else 0.2
         x_min, x_max = expanded_range(results[parameter], minimum_width)
 
@@ -164,7 +167,7 @@ def make_figure(results):
             )
 
         # Place every result for the same sensor on the same number line.
-        for _, library in enumerate(libraries):
+        for library in libraries:
             selection = results[results["calibration_library"] == library].copy()
 
             if selection.empty:
@@ -241,8 +244,7 @@ def make_figure(results):
     figure.update_layout(
         title={
             "text": (
-                "Double Sphere camera intrinsics"
-                f"<br><sup>{dataset_count} datasets · "
+                title + f"<br><sup>{dataset_count} datasets · "
                 f"{sensor_count} cameras · "
                 f"{library_count} calibration libraries</sup>"
             ),
@@ -288,22 +290,136 @@ def make_figure(results):
     return figure
 
 
-def write_figure(figure, output_html):
+def write_figures(intrinsics_figure, extrinsics_figure, output_html):
     output_html.parent.mkdir(parents=True, exist_ok=True)
 
-    figure.write_html(
-        output_html,
-        config={"displaylogo": False, "responsive": True, "scrollZoom": False},
+    config = {
+        "displaylogo": False,
+        "responsive": True,
+        "scrollZoom": False,
+    }
+
+    intrinsics_html = intrinsics_figure.to_html(
+        full_html=False,
+        include_plotlyjs=True,
+        config=config,
     )
+
+    extrinsics_html = extrinsics_figure.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config=config,
+    )
+
+    document = dominate.document(title="Calibration Benchmarking")
+
+    with document.head:
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+
+        style("""
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #ffffff;
+                color: #1f2937;
+            }
+
+            .tabs {
+                display: flex;
+                gap: 8px;
+                padding: 16px 24px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .tab-button {
+                border: none;
+                background: transparent;
+                padding: 10px 18px;
+                cursor: pointer;
+                font-size: 15px;
+                color: #64748b;
+            }
+
+            .tab-button.active {
+                font-weight: bold;
+                color: #1f2937;
+                border-bottom: 2px solid #1f2937;
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+            """)
+
+    with document.body:
+        with div(cls="tabs"):
+            button(
+                "Intrinsics",
+                cls="tab-button active",
+                onclick="showTab('intrinsics', this)",
+            )
+            button(
+                "Extrinsics",
+                cls="tab-button",
+                onclick="showTab('extrinsics', this)",
+            )
+
+        with div(id="intrinsics", cls="tab-content active"):
+            raw(intrinsics_html)
+
+        with div(id="extrinsics", cls="tab-content"):
+            raw(extrinsics_html)
+
+        script(raw("""
+                function showTab(id, button) {
+                    document.querySelectorAll(".tab-content").forEach(element => {
+                        element.classList.remove("active");
+                    });
+
+                    document.querySelectorAll(".tab-button").forEach(element => {
+                        element.classList.remove("active");
+                    });
+
+                    const content = document.getElementById(id);
+
+                    content.classList.add("active");
+                    button.classList.add("active");
+
+                    content.querySelectorAll(".plotly-graph-div").forEach(plot => {
+                        Plotly.Plots.resize(plot);
+                    });
+                }
+                """))
+
+    output_html.write_text(document.render(), encoding="utf-8")
 
 
 def main():
     arguments = parse_arguments()
 
     results = load_all_results(arguments.results)
-    figure = make_figure(results)
 
-    write_figure(figure, arguments.output_html)
+    intrinsics_figure = make_figure(
+        results,
+        "Double Sphere camera intrinsics",
+    )
+
+    # TODO(Jack): Replace with actual extrinsic results once parsing is implemented.
+    extrinsics_figure = make_figure(
+        results,
+        "Camera-IMU extrinsics",
+    )
+
+    write_figures(
+        intrinsics_figure,
+        extrinsics_figure,
+        arguments.output_html,
+    )
 
     print(f"Wrote report to {arguments.output_html}")
 
