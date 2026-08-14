@@ -12,10 +12,7 @@ def collect_calibration_files(reprojection_directory):
     calibration_files = sorted(reprojection_directory.glob(f"*{CALIBRATION_SUFFIX}"))
 
     if not calibration_files:
-        raise RuntimeError(
-            f"No Reprojection calibration TOML files found under "
-            f"{reprojection_directory}"
-        )
+        raise RuntimeError(f"No Reprojection calibration TOML files found under " f"{reprojection_directory}")
 
     return calibration_files
 
@@ -87,9 +84,7 @@ def parse_calibration(input):
 
 def arg_parser():
     parser = argparse.ArgumentParser(
-        description=(
-            "Extract Reprojection camera intrinsics from calibration " "TOML files."
-        )
+        description=("Extract Reprojection camera intrinsics from calibration " "TOML files.")
     )
     parser.add_argument(
         "reprojection_directory",

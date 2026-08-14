@@ -35,10 +35,7 @@ LIBRARY_SYMBOLS = [
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description=(
-            "Build an HTML webpage containing number-line plots for "
-            "camera calibration results."
-        )
+        description=("Build an HTML webpage containing number-line plots for " "camera calibration results.")
     )
 
     parser.add_argument(
@@ -76,10 +73,7 @@ def load_results(path, library):
 
     missing_columns = required_columns - set(results.columns)
     if missing_columns:
-        raise ValueError(
-            f"{path}: missing required columns: "
-            f"{', '.join(sorted(missing_columns))}"
-        )
+        raise ValueError(f"{path}: missing required columns: " f"{', '.join(sorted(missing_columns))}")
 
     if results.empty:
         raise ValueError(f"No calibration results found in {path}")
@@ -127,9 +121,7 @@ def make_figure(results):
     if not libraries:
         raise ValueError("No calibration libraries were provided")
 
-    sensor_positions = {
-        sensor: position for position, sensor in enumerate(reversed(sensors))
-    }
+    sensor_positions = {sensor: position for position, sensor in enumerate(reversed(sensors))}
     library_styles = {
         library: {
             "color": LIBRARY_COLORS[index % len(LIBRARY_COLORS)],
@@ -178,9 +170,7 @@ def make_figure(results):
             if selection.empty:
                 continue
 
-            selection["sensor_position"] = selection["sensor_name"].map(
-                sensor_positions
-            )
+            selection["sensor_position"] = selection["sensor_name"].map(sensor_positions)
 
             style = library_styles[library]
 
