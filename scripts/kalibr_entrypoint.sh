@@ -18,6 +18,8 @@ rm --force --recursive /var/lib/apt/lists/*
 # job done!
 target_config="/mount/config/kalibr/april_6x6_80x80cm.yaml"
 [[ -f "${target_config}" ]] || { echo "Error: Kalibr target configuration does not exist: ${target_config}" >&2; exit 1; }
+imu_config="/mount/config/kalibr/imu.yaml"
+[[ -f "${imu_config}" ]] || { echo "Error: Kalibr target configuration does not exist: ${imu_config}" >&2; exit 1; }
 
 # NOTE(Jack): Iteration logic adopted from https://stackoverflow.com/questions/68121082/how-to-iterate-over-json-array-with-jq
 while read bag_i; do
@@ -34,6 +36,14 @@ while read bag_i; do
           --target "${target_config}" \
           --topics "${camera_i}"
 
+        # TODO PICK THE SPECIFIC CAM CHAIN FILE! Do not use wild card!
+        rosrun kalibr kalibr_calibrate_imu_camera \
+          --bag "${BENCHMARKING_DATA_INPUT_DIR}/${bag_i}" \
+          --cam "${BENCHMARKING_DATA_INPUT_DIR}"/*-camchain.yaml \
+          --dont-show-report \
+          --imu "${imu_config}" \
+          --target "${target_config}"
+
         # NOTE(Jack): We need to clean the camera name from having slashes (ex. like in a ROS topic) because otherwise
         # the mkdir command below will interpret that as a multilevel path.
         camera_name="${camera_i#/}"
@@ -44,8 +54,11 @@ while read bag_i; do
         mkdir --parents "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
         mv --verbose -- \
             "${BENCHMARKING_DATA_INPUT_DIR}"/*-report-cam.pdf \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-report-imucam.pdf \
             "${BENCHMARKING_DATA_INPUT_DIR}"/*-results-cam.txt \
             "${BENCHMARKING_DATA_INPUT_DIR}"/*-camchain.yaml \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-camchain-imucam.yaml \
+            "${BENCHMARKING_DATA_INPUT_DIR}"/*-imu.yaml \
           "${BENCHMARKING_RESULTS_DIR}/kalibr/${camera_name}"
 
     done < <(jq ".cameras[]" "${DATASET_SPECIFICATION_JSON}")
