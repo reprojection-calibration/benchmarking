@@ -150,15 +150,13 @@ def arg_parser():
         help="Directory containing Reprojection calibration TOML files.",
     )
     parser.add_argument(
-        "--output-intrinsics-csv",
+        "output_intrinsics_csv",
         type=Path,
-        required=True,
     )
 
     parser.add_argument(
-        "--output-extrinsics-csv",
+        "output_extrinsics_csv",
         type=Path,
-        required=True,
     )
 
     return parser.parse_args()

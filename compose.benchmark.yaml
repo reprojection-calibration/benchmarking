@@ -95,7 +95,7 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/parse_reprojection.py", "${BENCHMARKING_RESULTS_DIR}/reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"]
+    entrypoint: ["python3", "/python_tooling/parse_reprojection.py", "${BENCHMARKING_RESULTS_DIR}/reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_intrinsic_result.csv", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_extrinsic_result.csv"]
     volumes:
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
 
@@ -108,7 +108,7 @@ services:
       python-tooling-image:
         condition: service_completed_successfully
     image: benchmarking:python-tooling-stage
-    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/mount/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv", "--results", "reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_result.csv"]
+    entrypoint: ["python3", "/python_tooling/build_html_webpage.py", "/mount/index.html", "--results", "kalibr", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_kalibr_result.csv", "--results", "reprojection", "${BENCHMARKING_RESULTS_DIR}/parsed/parsed_reprojection_intrinsic_result.csv"]
     volumes:
       - ./:/mount
       - benchmarking-results:${BENCHMARKING_RESULTS_DIR}
