@@ -39,50 +39,48 @@ def parse_calibration(input):
 
     rows = []
 
-    for sensor_directory, camera in data.items():
-        if not isinstance(camera, dict):
-            raise ValueError(
-                f"Expected camera section '{sensor_directory}' in {path} "
-                f"to be a TOML table"
+    for workflow_name, workflow in data.items():
+        for sensor_directory, camera in workflow.items():
+            if not sensor_directory.startswith("cam"):
+                continue
+
+            intrinsics = camera["intrinsics"]
+            resolution = camera["resolution"]
+
+            if len(intrinsics) != 5:
+                raise ValueError(
+                    f"Expected 5 double-sphere intrinsics for "
+                    f"'{workflow_name}.{sensor_directory}' in {path}, "
+                    f"but found {len(intrinsics)}"
+                )
+
+            if len(resolution) != 2:
+                raise ValueError(
+                    f"Expected a two-element resolution for "
+                    f"'{workflow_name}.{sensor_directory}' in {path}, "
+                    f"but found {len(resolution)}"
+                )
+
+            focal_length, cx, cy, xi, alpha = intrinsics
+            width, height = resolution
+
+            rows.append(
+                {
+                    "bag": path.name.removesuffix(CALIBRATION_SUFFIX),
+                    "sensor_directory": sensor_directory,
+                    "sensor_name": camera["sensor_id"],
+                    "camera_model": camera["camera_model"],
+                    "fx": focal_length,
+                    "fy": focal_length,
+                    "cx": cx,
+                    "cy": cy,
+                    "xi": xi,
+                    "alpha": alpha,
+                    "width": width,
+                    "height": height,
+                    "source_file": str(path),
+                }
             )
-
-        intrinsics = camera["intrinsics"]
-        resolution = camera["resolution"]
-
-        if len(intrinsics) != 5:
-            raise ValueError(
-                f"Expected 5 double-sphere intrinsics for "
-                f"'{sensor_directory}' in {path}, "
-                f"but found {len(intrinsics)}"
-            )
-
-        if len(resolution) != 2:
-            raise ValueError(
-                f"Expected a two-element resolution for "
-                f"'{sensor_directory}' in {path}, "
-                f"but found {len(resolution)}"
-            )
-
-        focal_length, cx, cy, xi, alpha = intrinsics
-        width, height = resolution
-
-        rows.append(
-            {
-                "bag": path.name.removesuffix(CALIBRATION_SUFFIX),
-                "sensor_directory": sensor_directory,
-                "sensor_name": camera["sensor_id"],
-                "camera_model": camera["camera_model"],
-                "fx": focal_length,
-                "fy": focal_length,
-                "cx": cx,
-                "cy": cy,
-                "xi": xi,
-                "alpha": alpha,
-                "width": width,
-                "height": height,
-                "source_file": str(path),
-            }
-        )
 
     return rows
 
