@@ -8,13 +8,23 @@ from dominate.tags import body, button, div, head, meta, script, style, title
 from dominate.util import raw
 from plotly.subplots import make_subplots
 
-PARAMETERS = {
+INTRINSIC_PARAMETERS = {
     "fx": ("fx", "px"),
     "fy": ("fy", "px"),
     "cx": ("cx", "px"),
     "cy": ("cy", "px"),
     "xi": ("xi", ""),
     "alpha": ("alpha", ""),
+}
+
+EXTRINSIC_PARAMETERS = {
+    "tx": ("tx", "m"),
+    "ty": ("ty", "m"),
+    "tz": ("tz", "m"),
+    "qx": ("qx", ""),
+    "qy": ("qy", ""),
+    "qz": ("qz", ""),
+    "qw": ("qw", ""),
 }
 
 LIBRARY_COLORS = [
@@ -66,7 +76,7 @@ def load_results(path, library):
     path = Path(path)
     results = pd.read_csv(path)
 
-    required_columns = {
+    intrinsic_columns = {
         "bag",
         "sensor_name",
         "camera_model",
@@ -74,9 +84,28 @@ def load_results(path, library):
         *PARAMETERS.keys(),
     }
 
-    missing_columns = required_columns - set(results.columns)
-    if missing_columns:
-        raise ValueError(f"{path}: missing required columns: " f"{', '.join(sorted(missing_columns))}")
+    extrinsic_columns = {
+        "bag",
+        "frame_a",
+        "frame_b",
+        "source_file",
+        *EXTRINSIC_PARAMETERS.keys(),
+    }
+
+    if intrinsic_columns <= set(results.columns):
+        parameters = PARAMETERS
+        results["calibration_type"] = "intrinsic"
+
+    elif extrinsic_columns <= set(results.columns):
+        parameters = EXTRINSIC_PARAMETERS
+        results["calibration_type"] = "extrinsic"
+
+        # Reuse the existing plotting logic by treating each frame pair as a sensor.
+        results["sensor_name"] = results["frame_a"] + " → " + results["frame_b"]
+        results["camera_model"] = ""
+
+    else:
+        raise ValueError(f"{path}: unknown calibration result format")
 
     if results.empty:
         raise ValueError(f"No calibration results found in {path}")
@@ -85,7 +114,7 @@ def load_results(path, library):
     # not contain calibration-library metadata.
     results["calibration_library"] = library
 
-    for parameter in PARAMETERS:
+    for parameter in parameters:
         results[parameter] = pd.to_numeric(results[parameter], errors="coerce")
 
     return results
@@ -114,7 +143,7 @@ def expanded_range(values, minimum_width=0.0):
     return center - half_width, center + half_width
 
 
-def make_figure(results, title):
+def make_figure(results, title, parameters):
     sensors = list(results["sensor_name"].drop_duplicates())
     libraries = list(results["calibration_library"].drop_duplicates())
 
@@ -134,9 +163,9 @@ def make_figure(results, title):
     }
 
     figure = make_subplots(
-        rows=len(PARAMETERS),
+        rows=len(parameters),
         cols=1,
-        subplot_titles=[f"{title}" for title, _ in PARAMETERS.values()],
+        subplot_titles=[f"{title}" for title, _ in parameters.values()],
         vertical_spacing=0.055,
     )
 
@@ -145,7 +174,7 @@ def make_figure(results, title):
         "camera_model",
     ]
 
-    for row, (parameter, (parameter_title, unit)) in enumerate(PARAMETERS.items(), start=1):
+    for row, (parameter, (title, unit)) in enumerate(parameters.items(), start=1):
         minimum_width = 20.0 if unit == "px" else 0.2
         x_min, x_max = expanded_range(results[parameter], minimum_width)
 
@@ -200,7 +229,6 @@ def make_figure(results, title):
                         f"<b>{title}: %{{x:.10g}}"
                         f"{f' {unit}' if unit else ''}</b><br>"
                         "Dataset: %{customdata[0]}<br>"
-                        "Model: %{customdata[1]}<br>"
                         "<extra></extra>"
                     ),
                 ),
@@ -245,7 +273,7 @@ def make_figure(results, title):
         title={
             "text": (
                 title + f"<br><sup>{dataset_count} datasets · "
-                f"{sensor_count} cameras · "
+                f"{sensor_count} sensors · "
                 f"{library_count} calibration libraries</sup>"
             ),
             "x": 0.02,
@@ -255,7 +283,7 @@ def make_figure(results, title):
         autosize=True,
         height=max(
             1250,
-            len(PARAMETERS) * (170 + 45 * sensor_count),
+            len(parameters) * (170 + 45 * sensor_count),
         ),
         margin={
             "l": 145,
@@ -404,15 +432,19 @@ def main():
 
     results = load_all_results(arguments.results)
 
+    intrinsic_results = results[results["calibration_type"] == "intrinsic"]
+    extrinsic_results = results[results["calibration_type"] == "extrinsic"]
+
     intrinsics_figure = make_figure(
-        results,
+        intrinsic_results,
         "Double Sphere camera intrinsics",
+        INTRINSIC_PARAMETERS,
     )
 
-    # TODO(Jack): Replace with actual extrinsic results once parsing is implemented.
     extrinsics_figure = make_figure(
-        results,
+        extrinsic_results,
         "Camera-IMU extrinsics",
+        EXTRINSIC_PARAMETERS,
     )
 
     write_figures(
