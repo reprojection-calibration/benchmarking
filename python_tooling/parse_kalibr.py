@@ -3,8 +3,10 @@ import csv
 from pathlib import Path
 
 import yaml
+from scipy.spatial.transform import Rotation
 
 CAMCHAIN_SUFFIX = "-camchain.yaml"
+IMUCAM_SUFFIX = "-camchain-imucam.yaml"
 
 
 def collect_camchain_files(kalibr_directory):
@@ -16,6 +18,17 @@ def collect_camchain_files(kalibr_directory):
         raise RuntimeError(f"No camchain YAML files found under {kalibr_directory}")
 
     return camchain_files
+
+
+def collect_imucam_files(kalibr_directory):
+    kalibr_directory = Path(kalibr_directory)
+
+    imucam_files = sorted(kalibr_directory.glob(f"*/*{IMUCAM_SUFFIX}"))
+
+    if not imucam_files:
+        raise RuntimeError(f"No IMU-camera YAML files found under {kalibr_directory}")
+
+    return imucam_files
 
 
 def load_camchain(path):
@@ -67,17 +80,66 @@ def parse_camchain(input):
     }
 
 
+def parse_imucam(input):
+    data, path = input
+    path = Path(path)
+
+    sensor, camera = next(iter(data.items()))
+
+    transform = camera["T_cam_imu"]
+
+    if len(transform) != 4 or any(len(row) != 4 for row in transform):
+        raise ValueError(f"Expected a 4x4 T_cam_imu transform in {path}")
+
+    tx = transform[0][3]
+    ty = transform[1][3]
+    tz = transform[2][3]
+
+    rotation_matrix = [
+        transform[0][:3],
+        transform[1][:3],
+        transform[2][:3],
+    ]
+    qx, qy, qz, qw = Rotation.from_matrix(rotation_matrix).as_quat()
+
+    return {
+        "bag": path.name.removesuffix(IMUCAM_SUFFIX),
+        "frame_a": "/imu0",
+        "frame_b": camera["rostopic"],
+        "tx": tx,
+        "ty": ty,
+        "tz": tz,
+        "qx": qx,
+        "qy": qy,
+        "qz": qz,
+        "qw": qw,
+        "source_file": str(path),
+    }
+
+
+def write_csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def arg_parser():
-    parser = argparse.ArgumentParser(description="Extract Kalibr camera intrinsics from camchain YAML files.")
+    parser = argparse.ArgumentParser(description="Extract Kalibr calibration results from camchain YAML files.")
     parser.add_argument(
         "kalibr_directory",
         type=Path,
         help="Directory containing Kalibr camera result directories.",
     )
     parser.add_argument(
-        "output_csv",
+        "output_intrinsics_csv",
         type=Path,
-        help="CSV file to create.",
+    )
+    parser.add_argument(
+        "output_extrinsics_csv",
+        type=Path,
     )
 
     return parser.parse_args()
@@ -87,15 +149,16 @@ def main():
     args = arg_parser()
 
     camchain_files = collect_camchain_files(args.kalibr_directory)
-    rows = [parse_camchain(load_camchain(path)) for path in camchain_files]
+    imucam_files = collect_imucam_files(args.kalibr_directory)
 
-    args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-    with args.output_csv.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=rows[0].keys())
-        writer.writeheader()
-        writer.writerows(rows)
+    intrinsic_rows = [parse_camchain(load_camchain(path)) for path in camchain_files]
+    extrinsic_rows = [parse_imucam(load_camchain(path)) for path in imucam_files]
 
-    print(f"Wrote {len(rows)} calibration results to {args.output_csv}")
+    write_csv(args.output_intrinsics_csv, intrinsic_rows)
+    write_csv(args.output_extrinsics_csv, extrinsic_rows)
+
+    print(f"Wrote {len(intrinsic_rows)} intrinsic calibration results to {args.output_intrinsics_csv}")
+    print(f"Wrote {len(extrinsic_rows)} extrinsic calibration results to {args.output_extrinsics_csv}")
 
 
 if __name__ == "__main__":

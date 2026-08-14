@@ -33,7 +33,6 @@ def load_calibration(path):
 
 def parse_intrinsic_calibration(
     workflow_name,
-    table_id,
     camera,
     path,
 ):
@@ -42,16 +41,12 @@ def parse_intrinsic_calibration(
 
     if len(intrinsics) != 5:
         raise ValueError(
-            f"Expected 5 double-sphere intrinsics for "
-            f"'{workflow_name}.{table_id}' in {path}, "
-            f"but found {len(intrinsics)}"
+            f"Expected 5 double-sphere intrinsics for " f"'{workflow_name}' in {path}, " f"but found {len(intrinsics)}"
         )
 
     if len(resolution) != 2:
         raise ValueError(
-            f"Expected a two-element resolution for "
-            f"'{workflow_name}.{table_id}' in {path}, "
-            f"but found {len(resolution)}"
+            f"Expected a two-element resolution for " f"'{workflow_name}' in {path}, " f"but found {len(resolution)}"
         )
 
     focal_length, cx, cy, xi, alpha = intrinsics
@@ -59,7 +54,6 @@ def parse_intrinsic_calibration(
 
     return {
         "bag": path.name.removesuffix(CALIBRATION_SUFFIX),
-        "table_id": table_id,
         "sensor_name": camera["sensor_id"],
         "camera_model": camera["camera_model"],
         "fx": focal_length,
@@ -76,14 +70,13 @@ def parse_intrinsic_calibration(
 
 def parse_extrinsic_calibration(
     workflow_name,
-    table_id,
     extrinsic,
     path,
 ):
     transform = extrinsic["tf_a_b"]
 
     if len(transform) != 4 or any(len(row) != 4 for row in transform):
-        raise ValueError(f"Expected a 4x4 transform for " f"'{workflow_name}.{table_id}' in {path}")
+        raise ValueError(f"Expected a 4x4 transform for " f"'{workflow_name}' in {path}")
 
     tx = transform[0][3]
     ty = transform[1][3]
@@ -98,7 +91,6 @@ def parse_extrinsic_calibration(
 
     return {
         "bag": path.name.removesuffix(CALIBRATION_SUFFIX),
-        "table_id": table_id,
         "frame_a": extrinsic["frame_a"],
         "frame_b": extrinsic["frame_b"],
         "tx": tx,
@@ -122,16 +114,12 @@ def parse_calibration(input):
 
     for workflow_name, workflow in data.items():
         for name, calibration in workflow.items():
-            if not isinstance(calibration, dict):
-                continue
-
             if name.startswith("cam"):
-                intrinsic_rows.append(parse_intrinsic_calibration(workflow_name, name, calibration, path))
+                intrinsic_rows.append(parse_intrinsic_calibration(workflow_name, calibration, path))
             elif name.startswith("extrinsic"):
                 extrinsic_rows.append(
                     parse_extrinsic_calibration(
                         workflow_name,
-                        name,
                         calibration,
                         path,
                     )
