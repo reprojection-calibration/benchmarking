@@ -2,8 +2,8 @@ import argparse
 import csv
 import tomllib
 from pathlib import Path
-import numpy as np
 
+import numpy as np
 from scipy.spatial.transform import Rotation
 
 CALIBRATION_SUFFIX = ".calib.toml"
