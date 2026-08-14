@@ -18,9 +18,9 @@ INTRINSIC_PARAMETERS = {
 }
 
 EXTRINSIC_PARAMETERS = {
-    "tx": ("tx", "m"),
-    "ty": ("ty", "m"),
-    "tz": ("tz", "m"),
+    "tx": ("tx", "cm"),
+    "ty": ("ty", "cm"),
+    "tz": ("tz", "cm"),
     "qx": ("qx", ""),
     "qy": ("qy", ""),
     "qz": ("qz", ""),
@@ -81,7 +81,7 @@ def load_results(path, library):
         "sensor_name",
         "camera_model",
         "source_file",
-        *PARAMETERS.keys(),
+        *INTRINSIC_PARAMETERS.keys(),
     }
 
     extrinsic_columns = {
@@ -93,7 +93,7 @@ def load_results(path, library):
     }
 
     if intrinsic_columns <= set(results.columns):
-        parameters = PARAMETERS
+        parameters = INTRINSIC_PARAMETERS
         results["calibration_type"] = "intrinsic"
 
     elif extrinsic_columns <= set(results.columns):
@@ -175,7 +175,12 @@ def make_figure(results, title, parameters):
     ]
 
     for row, (parameter, (title, unit)) in enumerate(parameters.items(), start=1):
-        minimum_width = 20.0 if unit == "px" else 0.2
+        if unit == "px":
+            minimum_width = 20.0 if unit == "px" else 0.2
+        elif unit == "cm":
+            minimum_width = 10
+        else:
+            minimum_width = 0.2
         x_min, x_max = expanded_range(results[parameter], minimum_width)
 
         # Draw one horizontal number line for every sensor.

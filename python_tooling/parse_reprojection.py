@@ -2,6 +2,7 @@ import argparse
 import csv
 import tomllib
 from pathlib import Path
+import numpy as np
 
 from scipy.spatial.transform import Rotation
 
@@ -78,15 +79,10 @@ def parse_extrinsic_calibration(
     if len(transform) != 4 or any(len(row) != 4 for row in transform):
         raise ValueError(f"Expected a 4x4 transform for " f"'{workflow_name}' in {path}")
 
-    tx = transform[0][3]
-    ty = transform[1][3]
-    tz = transform[2][3]
+    translation = np.array(transform)[:3, 3]
+    tx, ty, tz = 100 * translation  # Convert to cm
 
-    rotation_matrix = [
-        transform[0][:3],
-        transform[1][:3],
-        transform[2][:3],
-    ]
+    rotation_matrix = np.array(transform)[:3, :3]
     qx, qy, qz, qw = Rotation.from_matrix(rotation_matrix).as_quat()
 
     return {

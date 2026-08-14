@@ -1,6 +1,7 @@
 import argparse
 import csv
 from pathlib import Path
+import numpy as np
 
 import yaml
 from scipy.spatial.transform import Rotation
@@ -91,15 +92,10 @@ def parse_imucam(input):
     if len(transform) != 4 or any(len(row) != 4 for row in transform):
         raise ValueError(f"Expected a 4x4 T_cam_imu transform in {path}")
 
-    tx = transform[0][3]
-    ty = transform[1][3]
-    tz = transform[2][3]
+    translation = np.array(transform)[:3, 3]
+    tx, ty, tz = 100 * translation  # Convert to cm
 
-    rotation_matrix = [
-        transform[0][:3],
-        transform[1][:3],
-        transform[2][:3],
-    ]
+    rotation_matrix = np.array(transform)[:3, :3]
     qx, qy, qz, qw = Rotation.from_matrix(rotation_matrix).as_quat()
 
     return {
