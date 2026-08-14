@@ -14,10 +14,7 @@ def collect_calibration_files(reprojection_directory):
     calibration_files = sorted(reprojection_directory.glob(f"*{CALIBRATION_SUFFIX}"))
 
     if not calibration_files:
-        raise RuntimeError(
-            f"No Reprojection calibration TOML files found under "
-            f"{reprojection_directory}"
-        )
+        raise RuntimeError(f"No Reprojection calibration TOML files found under " f"{reprojection_directory}")
 
     return calibration_files
 
@@ -86,10 +83,7 @@ def parse_extrinsic_calibration(
     transform = extrinsic["tf_a_b"]
 
     if len(transform) != 4 or any(len(row) != 4 for row in transform):
-        raise ValueError(
-            f"Expected a 4x4 transform for "
-            f"'{workflow_name}.{table_id}' in {path}"
-        )
+        raise ValueError(f"Expected a 4x4 transform for " f"'{workflow_name}.{table_id}' in {path}")
 
     tx = transform[0][3]
     ty = transform[1][3]
@@ -132,9 +126,7 @@ def parse_calibration(input):
                 continue
 
             if name.startswith("cam"):
-                intrinsic_rows.append(
-                    parse_intrinsic_calibration(workflow_name, name, calibration, path)
-                )
+                intrinsic_rows.append(parse_intrinsic_calibration(workflow_name, name, calibration, path))
             elif name.startswith("extrinsic"):
                 extrinsic_rows.append(
                     parse_extrinsic_calibration(
@@ -150,9 +142,7 @@ def parse_calibration(input):
 
 def arg_parser():
     parser = argparse.ArgumentParser(
-        description=(
-            "Extract Reprojection camera intrinsics from calibration " "TOML files."
-        )
+        description=("Extract Reprojection camera intrinsics from calibration " "TOML files.")
     )
     parser.add_argument(
         "reprojection_directory",
@@ -202,14 +192,8 @@ def main():
     write_csv(args.output_intrinsics_csv, intrinsic_rows)
     write_csv(args.output_extrinsics_csv, extrinsic_rows)
 
-    print(
-        f"Wrote {len(intrinsic_rows)} intrinsic calibration results to "
-        f"{args.output_intrinsics_csv}"
-    )
-    print(
-        f"Wrote {len(extrinsic_rows)} extrinsic calibration results to "
-        f"{args.output_extrinsics_csv}"
-    )
+    print(f"Wrote {len(intrinsic_rows)} intrinsic calibration results to " f"{args.output_intrinsics_csv}")
+    print(f"Wrote {len(extrinsic_rows)} extrinsic calibration results to " f"{args.output_extrinsics_csv}")
 
 
 if __name__ == "__main__":
