@@ -6,6 +6,9 @@ camera_model = "double_sphere"
 index = 1
 sensor_name = "/cam1/image_raw"
 
+[imu]
+sensor_name = "/imu0"
+
 [target]
 pattern_size = [0,0]
 type = "checkerboard"
