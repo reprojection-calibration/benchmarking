@@ -265,7 +265,7 @@ jobs:
               '
           
           # TODO(Jack): Should we pass the output directory here? Then we could upload it from the runner temp dir
-          # instead of the github workspace.
+          # instead of the github workspace in the "upload result webpage" step that comes next.
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
 
