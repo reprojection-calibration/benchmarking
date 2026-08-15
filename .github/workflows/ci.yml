@@ -120,19 +120,19 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
           
-          mkdir --parents ${RUNNER_TEMP}/parsed-kalibr-results
+          mkdir --parents ${RUNNER_TEMP}/parsed_kalibr_results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_kalibr_*_result.csv /mount/parsed-kalibr-results
+              bash -c 'cp --debug /volume/mount/parsed/parsed_kalibr_*_result.csv /mount/parsed_kalibr_results'
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-kalibr-results
-          path: ${{ runner.temp }}/parsed-kalibr-results
+          path: ${{ runner.temp }}/parsed_kalibr_results
           if-no-files-found: error
 
   reprojection-pipeline:
@@ -205,19 +205,19 @@ jobs:
             run --no-deps --rm parse-reprojection
           
                     
-          mkdir --parents ${RUNNER_TEMP}/parsed-reprojection-results
+          mkdir --parents ${RUNNER_TEMP}/parsed_reprojection_results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_reprojection_*_result.csv /mount/parsed-reprojection-results
+              bash -c 'cp --debug /volume/mount/parsed/parsed_reprojection_*_result.csv /mount/parsed_reprojection_results'
 
       - name: Upload parsed Reprojection results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-reprojection-results
-          path: ${{ runner.temp }}/parsed-reprojection-results
+          path: ${{ runner.temp }}/parsed_reprojection_results
           if-no-files-found: error
 
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
