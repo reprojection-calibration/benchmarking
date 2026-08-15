@@ -120,18 +120,19 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
           
+          mkdir --parents ${RUNNER_TEMP}/parsed-kalibr-results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_kalibr_intrinsic_result.csv /mount/
+              cp --debug /volume/mount/parsed/parsed_kalibr_*_result.csv /mount/parsed-kalibr-results
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-kalibr-results
-          path: ${{ runner.temp }}/parsed_kalibr_intrinsic_result.csv
+          path: ${{ runner.temp }}/parsed-kalibr-results
           if-no-files-found: error
 
   reprojection-pipeline:
@@ -203,18 +204,20 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-reprojection
           
+                    
+          mkdir --parents ${RUNNER_TEMP}/parsed-reprojection-results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_reprojection_intrinsic_result.csv /mount/
+              cp --debug /volume/mount/parsed/parsed_reprojection_*_result.csv /mount/parsed-reprojection-results
 
       - name: Upload parsed Reprojection results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-reprojection-results
-          path: ${{ runner.temp }}/parsed_reprojection_intrinsic_result.csv
+          path: ${{ runner.temp }}/parsed-reprojection-results
           if-no-files-found: error
 
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
@@ -257,8 +260,8 @@ jobs:
             ubuntu:24.04 \
               sh -c '
                 mkdir --parents /volume/mount/parsed
-                cp --debug /mount/parsed_kalibr_intrinsic_result.csv /volume/mount/parsed/
-                cp --debug /mount/parsed_reprojection_intrinsic_result.csv /volume/mount/parsed/
+                cp --debug /mount/parsed_kalibr_results/* /volume/mount/parsed/
+                cp --debug /mount/parsed_reprojection_results/* /volume/mount/parsed/
               '
           
           # TODO(Jack): Should we pass the output directory here? Then we could upload it from the runner temp dir
