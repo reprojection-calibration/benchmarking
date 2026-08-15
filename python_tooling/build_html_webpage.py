@@ -1,17 +1,30 @@
 import argparse
 from pathlib import Path
 
+import dominate
 import pandas as pd
 import plotly.graph_objects as go
+from dominate.tags import body, button, div, head, meta, script, style, title
+from dominate.util import raw
 from plotly.subplots import make_subplots
 
-PARAMETERS = {
+INTRINSIC_PARAMETERS = {
     "fx": ("fx", "px"),
     "fy": ("fy", "px"),
     "cx": ("cx", "px"),
     "cy": ("cy", "px"),
     "xi": ("xi", ""),
     "alpha": ("alpha", ""),
+}
+
+EXTRINSIC_PARAMETERS = {
+    "tx": ("tx", "cm"),
+    "ty": ("ty", "cm"),
+    "tz": ("tz", "cm"),
+    "qx": ("qx", ""),
+    "qy": ("qy", ""),
+    "qz": ("qz", ""),
+    "qw": ("qw", ""),
 }
 
 LIBRARY_COLORS = [
@@ -63,17 +76,36 @@ def load_results(path, library):
     path = Path(path)
     results = pd.read_csv(path)
 
-    required_columns = {
+    intrinsic_columns = {
         "bag",
         "sensor_name",
         "camera_model",
         "source_file",
-        *PARAMETERS.keys(),
+        *INTRINSIC_PARAMETERS.keys(),
     }
 
-    missing_columns = required_columns - set(results.columns)
-    if missing_columns:
-        raise ValueError(f"{path}: missing required columns: " f"{', '.join(sorted(missing_columns))}")
+    extrinsic_columns = {
+        "bag",
+        "frame_a",
+        "frame_b",
+        "source_file",
+        *EXTRINSIC_PARAMETERS.keys(),
+    }
+
+    if intrinsic_columns <= set(results.columns):
+        parameters = INTRINSIC_PARAMETERS
+        results["calibration_type"] = "intrinsic"
+
+    elif extrinsic_columns <= set(results.columns):
+        parameters = EXTRINSIC_PARAMETERS
+        results["calibration_type"] = "extrinsic"
+
+        # Reuse the existing plotting logic by treating each frame pair as a sensor.
+        results["sensor_name"] = results["frame_a"] + " → " + results["frame_b"]
+        results["camera_model"] = ""
+
+    else:
+        raise ValueError(f"{path}: unknown calibration result format")
 
     if results.empty:
         raise ValueError(f"No calibration results found in {path}")
@@ -82,7 +114,7 @@ def load_results(path, library):
     # not contain calibration-library metadata.
     results["calibration_library"] = library
 
-    for parameter in PARAMETERS:
+    for parameter in parameters:
         results[parameter] = pd.to_numeric(results[parameter], errors="coerce")
 
     return results
@@ -111,7 +143,7 @@ def expanded_range(values, minimum_width=0.0):
     return center - half_width, center + half_width
 
 
-def make_figure(results):
+def make_figure(results, title, parameters):
     sensors = list(results["sensor_name"].drop_duplicates())
     libraries = list(results["calibration_library"].drop_duplicates())
 
@@ -131,9 +163,9 @@ def make_figure(results):
     }
 
     figure = make_subplots(
-        rows=len(PARAMETERS),
+        rows=len(parameters),
         cols=1,
-        subplot_titles=[f"{title}" for title, _ in PARAMETERS.values()],
+        subplot_titles=[f"{title}" for title, _ in parameters.values()],
         vertical_spacing=0.055,
     )
 
@@ -142,8 +174,13 @@ def make_figure(results):
         "camera_model",
     ]
 
-    for row, (parameter, (title, unit)) in enumerate(PARAMETERS.items(), start=1):
-        minimum_width = 20.0 if unit == "px" else 0.2
+    for row, (parameter, (title, unit)) in enumerate(parameters.items(), start=1):
+        if unit == "px":
+            minimum_width = 20.0 if unit == "px" else 0.2
+        elif unit == "cm":
+            minimum_width = 10
+        else:
+            minimum_width = 0.2
         x_min, x_max = expanded_range(results[parameter], minimum_width)
 
         # Draw one horizontal number line for every sensor.
@@ -164,7 +201,7 @@ def make_figure(results):
             )
 
         # Place every result for the same sensor on the same number line.
-        for _, library in enumerate(libraries):
+        for library in libraries:
             selection = results[results["calibration_library"] == library].copy()
 
             if selection.empty:
@@ -197,7 +234,6 @@ def make_figure(results):
                         f"<b>{title}: %{{x:.10g}}"
                         f"{f' {unit}' if unit else ''}</b><br>"
                         "Dataset: %{customdata[0]}<br>"
-                        "Model: %{customdata[1]}<br>"
                         "<extra></extra>"
                     ),
                 ),
@@ -241,9 +277,8 @@ def make_figure(results):
     figure.update_layout(
         title={
             "text": (
-                "Double Sphere camera intrinsics"
-                f"<br><sup>{dataset_count} datasets · "
-                f"{sensor_count} cameras · "
+                title + f"<br><sup>{dataset_count} datasets · "
+                f"{sensor_count} sensors · "
                 f"{library_count} calibration libraries</sup>"
             ),
             "x": 0.02,
@@ -253,7 +288,7 @@ def make_figure(results):
         autosize=True,
         height=max(
             1250,
-            len(PARAMETERS) * (170 + 45 * sensor_count),
+            len(parameters) * (170 + 45 * sensor_count),
         ),
         margin={
             "l": 145,
@@ -288,22 +323,140 @@ def make_figure(results):
     return figure
 
 
-def write_figure(figure, output_html):
+def write_figures(intrinsics_figure, extrinsics_figure, output_html):
     output_html.parent.mkdir(parents=True, exist_ok=True)
 
-    figure.write_html(
-        output_html,
-        config={"displaylogo": False, "responsive": True, "scrollZoom": False},
+    config = {
+        "displaylogo": False,
+        "responsive": True,
+        "scrollZoom": False,
+    }
+
+    intrinsics_html = intrinsics_figure.to_html(
+        full_html=False,
+        include_plotlyjs=True,
+        config=config,
     )
+
+    extrinsics_html = extrinsics_figure.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config=config,
+    )
+
+    document = dominate.document(title="Calibration Benchmarking")
+
+    with document.head:
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+
+        style("""
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #ffffff;
+                color: #1f2937;
+            }
+
+            .tabs {
+                display: flex;
+                gap: 8px;
+                padding: 16px 24px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .tab-button {
+                border: none;
+                background: transparent;
+                padding: 10px 18px;
+                cursor: pointer;
+                font-size: 15px;
+                color: #64748b;
+            }
+
+            .tab-button.active {
+                font-weight: bold;
+                color: #1f2937;
+                border-bottom: 2px solid #1f2937;
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+            """)
+
+    with document.body:
+        with div(cls="tabs"):
+            button(
+                "Intrinsics",
+                cls="tab-button active",
+                onclick="showTab('intrinsics', this)",
+            )
+            button(
+                "Extrinsics",
+                cls="tab-button",
+                onclick="showTab('extrinsics', this)",
+            )
+
+        with div(id="intrinsics", cls="tab-content active"):
+            raw(intrinsics_html)
+
+        with div(id="extrinsics", cls="tab-content"):
+            raw(extrinsics_html)
+
+        script(raw("""
+                function showTab(id, button) {
+                    document.querySelectorAll(".tab-content").forEach(element => {
+                        element.classList.remove("active");
+                    });
+
+                    document.querySelectorAll(".tab-button").forEach(element => {
+                        element.classList.remove("active");
+                    });
+
+                    const content = document.getElementById(id);
+
+                    content.classList.add("active");
+                    button.classList.add("active");
+
+                    content.querySelectorAll(".plotly-graph-div").forEach(plot => {
+                        Plotly.Plots.resize(plot);
+                    });
+                }
+                """))
+
+    output_html.write_text(document.render(), encoding="utf-8")
 
 
 def main():
     arguments = parse_arguments()
 
     results = load_all_results(arguments.results)
-    figure = make_figure(results)
 
-    write_figure(figure, arguments.output_html)
+    intrinsic_results = results[results["calibration_type"] == "intrinsic"]
+    extrinsic_results = results[results["calibration_type"] == "extrinsic"]
+
+    intrinsics_figure = make_figure(
+        intrinsic_results,
+        "Double Sphere camera intrinsics",
+        INTRINSIC_PARAMETERS,
+    )
+
+    extrinsics_figure = make_figure(
+        extrinsic_results,
+        "Camera-IMU extrinsics",
+        EXTRINSIC_PARAMETERS,
+    )
+
+    write_figures(
+        intrinsics_figure,
+        extrinsics_figure,
+        arguments.output_html,
+    )
 
     print(f"Wrote report to {arguments.output_html}")
 

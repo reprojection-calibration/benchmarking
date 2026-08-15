@@ -120,18 +120,21 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
           
+          # NOTE(Jack): In the following docker run command we have to run the cp instruction inside a bash -c '' shell 
+          # otherwise the * will not expand and grab the files we want.
+          mkdir --parents ${RUNNER_TEMP}/parsed_kalibr_results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_kalibr_result.csv /mount/
+              bash -c 'cp --debug /volume/mount/parsed/parsed_kalibr_*_result.csv /mount/parsed_kalibr_results'
 
       - name: Upload parsed Kalibr results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-kalibr-results
-          path: ${{ runner.temp }}/parsed_kalibr_result.csv
+          path: ${{ runner.temp }}/parsed_kalibr_results
           if-no-files-found: error
 
   reprojection-pipeline:
@@ -203,18 +206,20 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-reprojection
           
+                    
+          mkdir --parents ${RUNNER_TEMP}/parsed_reprojection_results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount" \
             --rm \
             ubuntu:24.04 \
-              cp --debug /volume/mount/parsed/parsed_reprojection_result.csv /mount/
+              bash -c 'cp --debug /volume/mount/parsed/parsed_reprojection_*_result.csv /mount/parsed_reprojection_results'
 
       - name: Upload parsed Reprojection results
         uses: actions/upload-artifact@v7
         with:
           name: parsed-reprojection-results
-          path: ${{ runner.temp }}/parsed_reprojection_result.csv
+          path: ${{ runner.temp }}/parsed_reprojection_results
           if-no-files-found: error
 
   # NOTE(Jack): We split building the webpage and its deployment because we should build it everytime, regardless if we
@@ -240,12 +245,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: parsed-kalibr-results
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/parsed_kalibr_results
       - name: Download parsed Reprojection results
         uses: actions/download-artifact@v8
         with:
           name: parsed-reprojection-results
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/parsed_reprojection_results
       - name: Create results webpage
         run: |
           set -eoux pipefail
@@ -255,14 +260,14 @@ jobs:
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
             --rm \
             ubuntu:24.04 \
-              sh -c '
+              bash -c '
                 mkdir --parents /volume/mount/parsed
-                cp --debug /mount/parsed_kalibr_result.csv /volume/mount/parsed/
-                cp --debug /mount/parsed_reprojection_result.csv /volume/mount/parsed/
+                cp --debug /mount/parsed_kalibr_results/* /volume/mount/parsed/
+                cp --debug /mount/parsed_reprojection_results/* /volume/mount/parsed/
               '
           
           # TODO(Jack): Should we pass the output directory here? Then we could upload it from the runner temp dir
-          # instead of the github workspace.
+          # instead of the github workspace in the "upload result webpage" step that comes next.
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm build-results-page
 
