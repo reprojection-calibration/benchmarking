@@ -120,6 +120,8 @@ jobs:
           docker compose --env-file compose.benchmark.env --file compose.benchmark.yaml \
             run --no-deps --rm parse-kalibr
           
+          # NOTE(Jack): In the following docker run command we have to run the cp instruction inside a bash -c '' shell 
+          # otherwise the * will not expand and grab the files we want.
           mkdir --parents ${RUNNER_TEMP}/parsed_kalibr_results
           docker run \
             --mount "type=volume,source=benchmarking-results,target=/volume/mount,readonly" \
@@ -243,12 +245,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: parsed-kalibr-results
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/parsed_kalibr_results
       - name: Download parsed Reprojection results
         uses: actions/download-artifact@v8
         with:
           name: parsed-reprojection-results
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/parsed_reprojection_results
       - name: Create results webpage
         run: |
           set -eoux pipefail
@@ -258,7 +260,7 @@ jobs:
             --mount "type=bind,source=${RUNNER_TEMP},target=/mount,readonly" \
             --rm \
             ubuntu:24.04 \
-              sh -c '
+              bash -c '
                 mkdir --parents /volume/mount/parsed
                 cp --debug /mount/parsed_kalibr_results/* /volume/mount/parsed/
                 cp --debug /mount/parsed_reprojection_results/* /volume/mount/parsed/
